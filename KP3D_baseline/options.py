@@ -20,7 +20,8 @@ class KP3DOptions:
         self.parser.add_argument("--data_path",
                                  type=str,
                                  help="path to the training data",
-                                 default=os.path.join(file_dir, "kitti_data"))
+                                 #default=os.path.join(file_dir, "kitti_data"))
+                                 default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
@@ -30,7 +31,7 @@ class KP3DOptions:
         self.parser.add_argument("--model_name",
                                  type=str,
                                  help="the name of the folder to save the model in",
-                                 default="mdp")
+                                 default="KP3D Baseline")
         self.parser.add_argument("--split",
                                  type=str,
                                  help="which training split to use",
@@ -122,6 +123,9 @@ class KP3DOptions:
                                  help="pretrained or scratch",
                                  default="pretrained",
                                  choices=["pretrained", "scratch"])
+        self.parser.add_argument("--with_drop",
+                                 help="dropout in keypoint or not",
+                                 action="store_false")
         self.parser.add_argument("--pose_model_input",
                                  type=str,
                                  help="how many images the pose network gets",
