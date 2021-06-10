@@ -85,10 +85,11 @@ class KP3DOptions:
                                  default=[0, -1, 1])
 
         # OPTIMIZATION options
+        # TODO: in real training, check batch size but it seems like it should be 12 for md2!
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=12)
+                                 default=2) # 12
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",

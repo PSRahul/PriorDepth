@@ -102,6 +102,8 @@ class Trainer:
         print('line 102')
         for batch_idx, inputs in enumerate(self.train_loader):
             print('line 104')
+            print(inputs.keys())
+            print(len(inputs))
             before_op_time = time.time()
             print('in first batch')
             outputs, losses = self.process_batch(inputs)
@@ -122,7 +124,8 @@ class Trainer:
             print('line 122')
             if early_phase or late_phase:
                 self.log_time(batch_idx, duration, losses["loss"].cpu().data)
-
+                # TODO: check for depth_gt in inputs and whether we need it or not
+                # TODO: if it is needed work on adding it with also check whether compute_depth_losses works for us
                 # if "depth_gt" in inputs:
                 #     self.compute_depth_losses(inputs, outputs, losses)
                 print('line 128')
@@ -141,11 +144,14 @@ class Trainer:
         print('after forward')
         print(outputs)
         exit(0)
+        # TODO: generate_images_pred should produce warped images based on rotation and translation
+        # TODO: make it work for sure :D
+        # TODO: then check reprojection loss works or not
         # self.generate_images_pred(inputs, outputs)
         losses = self.compute_reprojection_loss(inputs, outputs)
 
         return outputs, losses
-
+    # TODO: if train works correctly, this should be easy. Work on val() after being sure train works correctly.
     def val(self):
         pass
 

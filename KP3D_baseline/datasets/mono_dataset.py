@@ -106,8 +106,6 @@ class MonoDataset(data.Dataset):
             if "color" in k:
                 n, im, i = k
                 inputs[(n, im, i)] = self.to_tensor(f)
-                print('line 109')
-                print(inputs)
                 inputs[(n + "_aug", im, i)] = self.to_tensor(color_aug(f))
 
     def __len__(self):
@@ -138,10 +136,10 @@ class MonoDataset(data.Dataset):
             3       images resized to (self.width // 8, self.height // 8)
         """
         inputs = {}
-
-        do_color_aug = self.is_train and random.random() > 0.5
+        # TODO: make color augmentation works if needed. code fails when this do_color_aug is True.
+        # do_color_aug = self.is_train and random.random() > 0.5
+        do_color_aug = 0
         do_flip = self.is_train and random.random() > 0.5
-
         line = self.filenames[index].split()
         folder = line[0]
 

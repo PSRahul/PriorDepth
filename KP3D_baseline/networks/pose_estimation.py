@@ -22,8 +22,8 @@ class PoseEstimation:
     def get_six_dof(self, ess_mat, kp1, kp2):
         return kornia.geometry.motion_from_essential_choose_solution(ess_mat, self.K1, self.K2, kp1, kp2)
 
-    def get_pose(self, des1, des2):
-        match_kp1, match_kp2 = self.match_keypoints(des1, des2)
+    def get_pose(self, kp1, kp2, des1, des2):
+        match_kp1, match_kp2 = self.match_keypoints(kp1, kp2, des1, des2)
         ess_mat = self.find_essential_matrix(match_kp1, match_kp2)
-        R, t, tri_points = self.get_six_dof(ess_mat)
+        R, t, tri_points = self.get_six_dof(ess_mat, kp1, kp2)
         return R, t

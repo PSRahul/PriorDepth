@@ -4,10 +4,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.utils.model_zoo as model_zoo
 import torchvision.models as models
 #from KP3D_baseline.utils.image import image_grid
-#from ..utils.image import image_grid
+from .image import image_grid
 
 
 def upsample(x):
@@ -28,8 +27,6 @@ class conv_bn_elu(nn.Module):
 class KeypointEncoder(nn.Module):
     def __init__(self, pretrained, with_drop):
         super(KeypointEncoder, self).__init__()
-        print('in keypoint resnet line 30, checks whether dropout is True')
-        print(with_drop)
         self.rn = models.resnet18(pretrained)
         self.dropout = nn.Dropout2d(0.2)
         self.use_dropout = with_drop
@@ -130,8 +127,8 @@ class KeypointDecoder(nn.Module):
         x = torch.cat(x, 1)
         x = self.upconv3_1(x)
         # Detector and score
-        self.outputs[("location")]  = self.tanh(self.locconv(x))
-        self.outputs[("score")]     = self.sigmoid(self.scoreconv(x))
+        self.outputs["location"] = self.tanh(self.locconv(x))
+        self.outputs["score"] = self.sigmoid(self.scoreconv(x))
         # Layer2
         x = self.upconv2_0(x)
         x = [upsample(x)]
@@ -145,66 +142,66 @@ class KeypointDecoder(nn.Module):
         x = torch.cat(x, 1)
         x = self.upconv1_1(x)
         # Descriptor features
-        self.outputs[("feature")]   = self.featconv(x)
+        self.outputs["feature"] = self.featconv(x)
 
         return self.outputs
 
-# class KeypointResnet(nn.Module):
-#     def __init__(self, with_drop=True):
-#         super().__init__()
-#         print('Instantiating keypoint resnet')
-#
-#         pretrained = True
-#         self.encoderK = KeypointEncoder(pretrained=pretrained, with_drop=True)
-#         self.decoderK = KeypointDecoder()
-#
-#         self.cross_ratio = 2.0
-#         self.cell = 8
-#
-#     def forward(self, x):
-#
-#         B, _, H, W = x.shape
-#
-#         x = self.encoderK(x)
-#         xK = self.decoderK(x)
-#
-#         score = xK[('score')]
-#         center_shift = xK[('location')]
-#         feat = xK[('feature')]
-#
-#         _, _, Hc, Wc = score.shape
-#
-#         ############ Remove border for score ##############
-#         border_mask = torch.ones(B,Hc,Wc)
-#         border_mask[:,0] = 0
-#         border_mask[:,Hc-1] = 0
-#         border_mask[:,:,0] = 0
-#         border_mask[:,:,Wc-1] = 0
-#         border_mask = border_mask.unsqueeze(1)
-#         score = score * border_mask.to(score.device)
-#
-#         ############ Remap coordinate ##############
-#         step = (self.cell-1) / 2.
-#         center_base = image_grid(B, Hc, Wc,
-#                                 dtype=center_shift.dtype,
-#                                 device=center_shift.device,
-#                                 ones=False, normalized=False).mul(self.cell) + step
-#
-#         coord_un = center_base.add(center_shift.mul(self.cross_ratio * step))
-#         coord = coord_un.clone()
-#         coord[:,0] = torch.clamp(coord_un[:,0], min=0, max=W-1)
-#         coord[:,1] = torch.clamp(coord_un[:,1], min=0, max=H-1)
-#
-#         ############ Sampling feature ##############
-#         if self.training is False:
-#             coord_norm = coord[:,:2].clone()
-#             coord_norm[:,0] = (coord_norm[:,0] / (float(W-1)/2.)) - 1.
-#             coord_norm[:,1] = (coord_norm[:,1] / (float(H-1)/2.)) - 1.
-#             coord_norm = coord_norm.permute(0, 2, 3, 1)
-#
-#             feat = torch.nn.functional.grid_sample(feat, coord_norm, align_corners=False)
-#
-#             dn = torch.norm(feat, p=2, dim=1) # Compute the norm.
-#             feat = feat.div(torch.unsqueeze(dn, 1)) # Divide by norm to normalize.
-#
-#         return score, coord, feat
+class KeypointResnet(nn.Module):
+    def __init__(self, with_drop=True):
+        super().__init__()
+        print('Instantiating keypoint resnet')
+
+        pretrained = True
+        self.encoderK = KeypointEncoder(pretrained=pretrained, with_drop=True)
+        self.decoderK = KeypointDecoder()
+
+        self.cross_ratio = 2.0
+        self.cell = 8
+
+    def forward(self, x):
+
+        B, _, H, W = x.shape
+
+        x = self.encoderK(x)
+        xK = self.decoderK(x)
+
+        score = xK[('score')]
+        center_shift = xK[('location')]
+        feat = xK[('feature')]
+
+        _, _, Hc, Wc = score.shape
+
+        ############ Remove border for score ##############
+        border_mask = torch.ones(B,Hc,Wc)
+        border_mask[:,0] = 0
+        border_mask[:,Hc-1] = 0
+        border_mask[:,:,0] = 0
+        border_mask[:,:,Wc-1] = 0
+        border_mask = border_mask.unsqueeze(1)
+        score = score * border_mask.to(score.device)
+
+        ############ Remap coordinate ##############
+        step = (self.cell-1) / 2.
+        center_base = image_grid(B, Hc, Wc,
+                                dtype=center_shift.dtype,
+                                device=center_shift.device,
+                                ones=False, normalized=False).mul(self.cell) + step
+
+        coord_un = center_base.add(center_shift.mul(self.cross_ratio * step))
+        coord = coord_un.clone()
+        coord[:,0] = torch.clamp(coord_un[:,0], min=0, max=W-1)
+        coord[:,1] = torch.clamp(coord_un[:,1], min=0, max=H-1)
+
+        ############ Sampling feature ##############
+        if self.training is False:
+            coord_norm = coord[:,:2].clone()
+            coord_norm[:,0] = (coord_norm[:,0] / (float(W-1)/2.)) - 1.
+            coord_norm[:,1] = (coord_norm[:,1] / (float(H-1)/2.)) - 1.
+            coord_norm = coord_norm.permute(0, 2, 3, 1)
+
+            feat = torch.nn.functional.grid_sample(feat, coord_norm, align_corners=False)
+
+            dn = torch.norm(feat, p=2, dim=1) # Compute the norm.
+            feat = feat.div(torch.unsqueeze(dn, 1)) # Divide by norm to normalize.
+
+        return score, coord, feat
