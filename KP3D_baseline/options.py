@@ -89,7 +89,7 @@ class KP3DOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=2) # 12
+                                 default=1) # 12
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
@@ -142,10 +142,11 @@ class KP3DOptions:
         self.parser.add_argument("--no_cuda",
                                  help="if set disables CUDA",
                                  action="store_true")
+        # TODO: in real training, adjust num workers based on the machine, in md2: 12
         self.parser.add_argument("--num_workers",
                                  type=int,
                                  help="number of dataloader workers",
-                                 default=12)
+                                 default=1) # 12
 
         # LOADING options
         self.parser.add_argument("--load_weights_folder",

@@ -33,10 +33,14 @@ class Trainer:
         datasets_dict = {"kitti": datasets.KITTIRAWDataset,
                          "kitti_odom": datasets.KITTIOdomDataset}
         self.dataset = datasets_dict[self.opt.dataset]
-        self.K = np.array([[0.58, 0, 0.5, 0],
-                           [0, 1.92, 0.5, 0],
-                           [0, 0, 1, 0],
-                           [0, 0, 0, 1]], dtype=np.float32)
+        # self.K = torch.tensor([[[0.58, 0, 0.5, 0],
+        #                        [0, 1.92, 0.5, 0],
+        #                        [0, 0, 1, 0],
+        #                        [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
+        self.K = torch.tensor([[[371.2000, 0.0000, 320.0000, 0.0000],
+                                [0.0000, 368.6400, 96.0000, 0.0000],
+                                [0.0000, 0.0000, 1.0000, 0.0000],
+                                [0.0000, 0.0000, 0.0000, 1.0000]]]).to("cpu" if self.opt.no_cuda else "cuda")
         #fpath = os.path.join(os.path.dirname(__file__), "splits", self.opt.split, "{}_files.txt")
         fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "splits", self.opt.split, "{}_files.txt")
 
@@ -129,6 +133,7 @@ class Trainer:
                 # if "depth_gt" in inputs:
                 #     self.compute_depth_losses(inputs, outputs, losses)
                 print('line 128')
+                # TODO: as final check logging!
                 self.log("train", inputs, outputs, losses)
                 self.val()
                 print('line 131')
@@ -142,14 +147,17 @@ class Trainer:
         print('before forward')
         outputs = self.model(inputs)
         print('after forward')
-        print(outputs)
-        exit(0)
         # TODO: generate_images_pred should produce warped images based on rotation and translation
         # TODO: make it work for sure :D
-        # TODO: then check reprojection loss works or not
         # self.generate_images_pred(inputs, outputs)
+        print(inputs)
+        print(outputs)
+        exit(0)
+        # TODO: color and color_aug images are in inputs
+        # TODO: have projected corresponding outputs for this function to calculate reprojection loss
         losses = self.compute_reprojection_loss(inputs, outputs)
-
+        print(losses)
+        exit(0)
         return outputs, losses
     # TODO: if train works correctly, this should be easy. Work on val() after being sure train works correctly.
     def val(self):
