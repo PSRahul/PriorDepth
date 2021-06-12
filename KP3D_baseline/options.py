@@ -92,7 +92,7 @@ class KP3DOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=1) # 12
+                                 default=2) # 12
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
