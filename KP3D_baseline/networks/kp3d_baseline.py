@@ -40,6 +40,10 @@ class KP3D_Baseline(nn.Module):
         return {'kp{}_score'.format(i): score, 'kp{}_coord'.format(i): coord, 'kp{}_feat'.format(i):  feat}
 
     def forward(self, input_image):
+        # TODO: make sure color, 0, 0 is target image and color, 1, 0 is context image
+        # TODO: calculate transformation matrix from target to context
+        # TODO: warp target pixels to obtain context pixels
+        # TODO: compute photometric loss between target image and warped target image
         outputs = {}
         print('in forward kp3d')
         depth_features = self.depth_encoder(input_image["color_aug", 0, 0])

@@ -37,7 +37,8 @@ class Trainer:
                                [0, 1.92, 0.5, 0],
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
-        fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
+        #fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
+        fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/splits", self.opt.split, "{}_files.txt")
 
         train_filenames = readlines(fpath.format("train"))
         val_filenames = readlines(fpath.format("val"))
@@ -78,6 +79,18 @@ class Trainer:
         self.writers = {}
         for mode in ["train", "val"]:
             self.writers[mode] = SummaryWriter(os.path.join(self.log_path, mode))
+
+        self.backproject_depth = {}
+        self.project_3d = {}
+        for scale in self.opt.scales:
+            h = self.opt.height // (2 ** scale)
+            w = self.opt.width // (2 ** scale)
+
+            self.backproject_depth[scale] = BackprojectDepth(self.opt.batch_size, h, w)
+            self.backproject_depth[scale].to(self.device)
+
+            self.project_3d[scale] = Project3D(self.opt.batch_size, h, w)
+            self.project_3d[scale].to(self.device)
 
         if not self.opt.no_ssim:
             self.ssim = SSIM()
@@ -139,24 +152,13 @@ class Trainer:
             self.step += 1
 
     def process_batch(self, inputs):
-        print('in process batch')
         for key, ipt in inputs.items():
             inputs[key] = ipt.to(self.device)
-        print('before forward')
         outputs = self.model(inputs)
-        print('after forward')
-        # TODO: generate_images_pred should produce warped images based on rotation and translation
-        # TODO: make it work for sure :D
-        # self.generate_images_pred(inputs, outputs)
-        # print(inputs)
-        # print(outputs)
-        exit(0)
-        # TODO: color and color_aug images are in inputs
-        # TODO: have projected corresponding outputs for this function to calculate reprojection loss
-        losses = self.compute_reprojection_loss(inputs, outputs)
-        #print(losses)
-        #exit(0)
+        self.generate_images_pred(inputs, outputs)
+        losses = self.compute_reprojection_loss(inputs[('color', 1, 0)], outputs[('color', 1, 0)])
         return outputs, losses
+
     # TODO: if train works correctly, this should be easy. Work on val() after being sure train works correctly.
     def val(self):
         pass
@@ -278,56 +280,42 @@ class Trainer:
         with open(os.path.join(models_dir, 'opt.json'), 'w') as f:
             json.dump(to_save, f, indent=2)
 
-
-
-
     def generate_images_pred(self, inputs, outputs):
-            """Generate the warped (reprojected) color images for a minibatch.
-            Generated images are saved into the `outputs` dictionary.
-            """
-            for scale in self.opt.scales:
-                disp = outputs[("disp", scale)]
-                if self.opt.v1_multiscale:
-                    source_scale = scale
-                else:
-                    disp = F.interpolate(
-                        disp, [self.opt.height, self.opt.width], mode="bilinear", align_corners=False)
-                    source_scale = 0
+        """Generate the warped (reprojected) color images for a minibatch.
+        Generated images are saved into the `outputs` dictionary.
+        """
+        for scale in self.opt.scales:
+            disp = outputs[("disp", scale)]
+            if self.opt.v1_multiscale:
+                source_scale = scale
+            else:
+                disp = F.interpolate(
+                    disp, [self.opt.height, self.opt.width], mode="bilinear", align_corners=False)
+                source_scale = 0
 
-                _, depth = disp_to_depth(disp, self.opt.min_depth, self.opt.max_depth)
+            _, depth = disp_to_depth(disp, self.opt.min_depth, self.opt.max_depth)
 
-                outputs[("depth", 0, scale)] = depth
+            outputs[("depth", 0, scale)] = depth
 
-                for i, frame_id in enumerate(self.opt.frame_ids[1:]):
+            # where we warp image!
+            for i, frame_id in enumerate(self.opt.frame_ids[1:]):
+                T = torch.zeros((4, 4)).to(self.device)
+                T[:3, :3] = outputs['R']
+                T[:3, 3] = outputs['t'].transpose(1, 2)
+                T[3, 3] = 1
+                cam_points = self.backproject_depth[source_scale](
+                    depth, inputs[("inv_K", source_scale)])
+                pix_coords = self.project_3d[source_scale](
+                    cam_points, inputs[("K", source_scale)], T)
 
-                    if frame_id == "s":
-                        T = inputs["stereo_T"]
-                    else:
-                        T = outputs[("cam_T_cam", 0, frame_id)]
+                outputs[("sample", frame_id, scale)] = pix_coords
 
-                    # from the authors of https://arxiv.org/abs/1712.00175
-                    if self.opt.pose_model_type == "posecnn":
+                outputs[("color", frame_id, scale)] = F.grid_sample(
+                    inputs[("color", frame_id, source_scale)],
+                    outputs[("sample", frame_id, scale)],
+                    padding_mode="border")
 
-                        axisangle = outputs[("axisangle", 0, frame_id)]
-                        translation = outputs[("translation", 0, frame_id)]
-
-                        inv_depth = 1 / depth
-                        mean_inv_depth = inv_depth.mean(3, True).mean(2, True)
-
-                        T = transformation_from_parameters(axisangle[:, 0], translation[:, 0] * mean_inv_depth[:, 0], frame_id < 0)
-
-                    cam_points = self.backproject_depth[source_scale](
-                        depth, inputs[("inv_K", source_scale)])
-                    pix_coords = self.project_3d[source_scale](
-                        cam_points, inputs[("K", source_scale)], T)
-
-                    outputs[("sample", frame_id, scale)] = pix_coords
-
-                    outputs[("color", frame_id, scale)] = F.grid_sample(
-                        inputs[("color", frame_id, source_scale)],
-                        outputs[("sample", frame_id, scale)],
-                        padding_mode="border")
-
-                    if not self.opt.disable_automasking:
-                        outputs[("color_identity", frame_id, scale)] = \
-                            inputs[("color", frame_id, source_scale)]
+                if not self.opt.disable_automasking:
+                    outputs[("color_identity", frame_id, scale)] = \
+                        inputs[("color", frame_id, source_scale)]
+        return outputs
