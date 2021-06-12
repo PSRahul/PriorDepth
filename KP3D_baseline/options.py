@@ -20,8 +20,10 @@ class KP3DOptions:
         self.parser.add_argument("--data_path",
                                  type=str,
                                  help="path to the training data",
-                                 #default=os.path.join(file_dir, "kitti_data"))
-                                 default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
+                                 #default=os.path.join(file_dir,"kitti_data")
+                                 default=os.path.join(file_dir,"../datasets/kitti_data")
+                                 #default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
+        )
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
@@ -86,6 +88,7 @@ class KP3DOptions:
 
         # OPTIMIZATION options
         # TODO: in real training, check batch size but it seems like it should be 12 for md2!
+        # note Konstantin: standard batch size for md is 12, correct
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
@@ -143,6 +146,7 @@ class KP3DOptions:
                                  help="if set disables CUDA",
                                  action="store_true")
         # TODO: in real training, adjust num workers based on the machine, in md2: 12
+        # note Konstantin: our cuda machine suggests 4, i once tried it out, with 4 it was faster
         self.parser.add_argument("--num_workers",
                                  type=int,
                                  help="number of dataloader workers",

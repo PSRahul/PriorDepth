@@ -41,8 +41,10 @@ class Trainer:
                                 [0.0000, 368.6400, 96.0000, 0.0000],
                                 [0.0000, 0.0000, 1.0000, 0.0000],
                                 [0.0000, 0.0000, 0.0000, 1.0000]]]).to("cpu" if self.opt.no_cuda else "cuda")
-        #fpath = os.path.join(os.path.dirname(__file__), "splits", self.opt.split, "{}_files.txt")
-        fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "splits", self.opt.split, "{}_files.txt")
+        fpath = os.path.join(os.path.dirname(__file__), "splits", self.opt.split, "{}_files.txt")
+        
+        #this seems like a local link of yours,
+        #fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "splits", self.opt.split, "{}_files.txt")
 
         train_filenames = readlines(fpath.format("train"))
         val_filenames = readlines(fpath.format("val"))
@@ -52,6 +54,7 @@ class Trainer:
         self.num_total_steps = num_train_samples // self.opt.batch_size * self.opt.num_epochs
 
         # TODO: change option.data_path for kitti_data in aws
+        # konstantin note: I set the options inside md2 to "../datasets/kitti_data"
         train_dataset = self.dataset(
             self.opt.data_path, train_filenames, self.opt.height, self.opt.width,
             self.opt.frame_ids, 4, is_train=True, img_ext=img_ext)
@@ -86,6 +89,7 @@ class Trainer:
         if not self.opt.no_ssim:
             self.ssim = SSIM()
             self.ssim.to(self.device)
+        print(self.opt.v1_multiscale)
         # TODO: check for multi-scale depth for md2
         print('Trainer is created successfully.')
 
