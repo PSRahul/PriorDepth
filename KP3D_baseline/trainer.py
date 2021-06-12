@@ -6,7 +6,7 @@ import torch.optim as optim
 from networks.kp3d_baseline import KP3D_Baseline
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
-
+import torch.nn.functional as F
 import datasets
 from utils2 import *
 from networks.layers import *
@@ -41,7 +41,7 @@ class Trainer:
                                 [0.0000, 368.6400, 96.0000, 0.0000],
                                 [0.0000, 0.0000, 1.0000, 0.0000],
                                 [0.0000, 0.0000, 0.0000, 1.0000]]]).to("cpu" if self.opt.no_cuda else "cuda")
-        fpath = os.path.join(os.path.dirname(__file__), "splits", self.opt.split, "{}_files.txt")
+        fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
         
         #this seems like a local link of yours,
         #fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "splits", self.opt.split, "{}_files.txt")
@@ -54,7 +54,7 @@ class Trainer:
         self.num_total_steps = num_train_samples // self.opt.batch_size * self.opt.num_epochs
 
         # TODO: change option.data_path for kitti_data in aws
-        # konstantin note: I set the options inside md2 to "../datasets/kitti_data"
+        # konstantin note: I added the option "../datasets/kitti_data" which will be the one needed on aws
         train_dataset = self.dataset(
             self.opt.data_path, train_filenames, self.opt.height, self.opt.width,
             self.opt.frame_ids, 4, is_train=True, img_ext=img_ext)
@@ -89,7 +89,10 @@ class Trainer:
         if not self.opt.no_ssim:
             self.ssim = SSIM()
             self.ssim.to(self.device)
-        print(self.opt.v1_multiscale)
+        if self.opt.v1_multiscale:
+            print("Set multiscale")
+        else:
+            print("No Multiscale")
         # TODO: check for multi-scale depth for md2
         print('Trainer is created successfully.')
 
@@ -107,17 +110,15 @@ class Trainer:
         print('in run epoch')
         print("Training")
         self.model.train()
-        print('line 102')
+        #print('line 102')
         for batch_idx, inputs in enumerate(self.train_loader):
-            print('line 104')
-            print(inputs.keys())
-            print(len(inputs))
+            #print('line 104')
+            #print(inputs.keys())
+            #print(len(inputs))
             before_op_time = time.time()
             print('in first batch')
             outputs, losses = self.process_batch(inputs)
-
             print('after process_batch')
-
             self.model_optimizer.zero_grad()
             losses["loss"].backward()
             self.model_optimizer.step()
@@ -153,15 +154,15 @@ class Trainer:
         print('after forward')
         # TODO: generate_images_pred should produce warped images based on rotation and translation
         # TODO: make it work for sure :D
-        # self.generate_images_pred(inputs, outputs)
-        print(inputs)
-        print(outputs)
-        exit(0)
+        #self.generate_images_pred(inputs, outputs)
+        #print(inputs)
+        #print(outputs)
+        #exit(0)
         # TODO: color and color_aug images are in inputs
         # TODO: have projected corresponding outputs for this function to calculate reprojection loss
         losses = self.compute_reprojection_loss(inputs, outputs)
-        print(losses)
-        exit(0)
+        #print(losses)
+        #exit(0)
         return outputs, losses
     # TODO: if train works correctly, this should be easy. Work on val() after being sure train works correctly.
     def val(self):
@@ -284,3 +285,57 @@ class Trainer:
 
         with open(os.path.join(models_dir, 'opt.json'), 'w') as f:
             json.dump(to_save, f, indent=2)
+
+
+
+
+    def generate_images_pred(self, inputs, outputs):
+            """Generate the warped (reprojected) color images for a minibatch.
+            Generated images are saved into the `outputs` dictionary.
+            """
+            for scale in self.opt.scales:
+                disp = outputs[("disp", scale)]
+                if self.opt.v1_multiscale:
+                    source_scale = scale
+                else:
+                    disp = F.interpolate(
+                        disp, [self.opt.height, self.opt.width], mode="bilinear", align_corners=False)
+                    source_scale = 0
+
+                _, depth = disp_to_depth(disp, self.opt.min_depth, self.opt.max_depth)
+
+                outputs[("depth", 0, scale)] = depth
+
+                for i, frame_id in enumerate(self.opt.frame_ids[1:]):
+
+                    if frame_id == "s":
+                        T = inputs["stereo_T"]
+                    else:
+                        T = outputs[("cam_T_cam", 0, frame_id)]
+
+                    # from the authors of https://arxiv.org/abs/1712.00175
+                    if self.opt.pose_model_type == "posecnn":
+
+                        axisangle = outputs[("axisangle", 0, frame_id)]
+                        translation = outputs[("translation", 0, frame_id)]
+
+                        inv_depth = 1 / depth
+                        mean_inv_depth = inv_depth.mean(3, True).mean(2, True)
+
+                        T = transformation_from_parameters(axisangle[:, 0], translation[:, 0] * mean_inv_depth[:, 0], frame_id < 0)
+
+                    cam_points = self.backproject_depth[source_scale](
+                        depth, inputs[("inv_K", source_scale)])
+                    pix_coords = self.project_3d[source_scale](
+                        cam_points, inputs[("K", source_scale)], T)
+
+                    outputs[("sample", frame_id, scale)] = pix_coords
+
+                    outputs[("color", frame_id, scale)] = F.grid_sample(
+                        inputs[("color", frame_id, source_scale)],
+                        outputs[("sample", frame_id, scale)],
+                        padding_mode="border")
+
+                    if not self.opt.disable_automasking:
+                        outputs[("color_identity", frame_id, scale)] = \
+                            inputs[("color", frame_id, source_scale)]

@@ -21,7 +21,7 @@ class KP3DOptions:
                                  type=str,
                                  help="path to the training data",
                                  #default=os.path.join(file_dir,"kitti_data")
-                                 default=os.path.join(file_dir,"../datasets/kitti_data")
+                                 default=os.path.join(file_dir,"../../datasets/kitti_data")
                                  #default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
         )
         self.parser.add_argument("--log_dir",

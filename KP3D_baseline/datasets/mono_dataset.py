@@ -137,7 +137,7 @@ class MonoDataset(data.Dataset):
         """
         inputs = {}
         # TODO: make color augmentation works if needed. code fails when this do_color_aug is True.
-        # do_color_aug = self.is_train and random.random() > 0.5
+        do_color_aug = self.is_train and random.random() > 0.5
         do_color_aug = 0
         do_flip = self.is_train and random.random() > 0.5
         line = self.filenames[index].split()
@@ -173,8 +173,9 @@ class MonoDataset(data.Dataset):
             inputs[("inv_K", scale)] = torch.from_numpy(inv_K)
 
         if do_color_aug:
-            color_aug = transforms.ColorJitter.get_params(
-                self.brightness, self.contrast, self.saturation, self.hue)
+            #color_aug = transforms.ColorJitter.get_params(
+            #    self.brightness, self.contrast, self.saturation, self.hue)
+            color_aug = transforms.ColorJitter(self.brightness, self.contrast, self.saturation, self.hue)
         else:
             color_aug = (lambda x: x)
 

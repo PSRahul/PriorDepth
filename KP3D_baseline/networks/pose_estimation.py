@@ -19,8 +19,14 @@ class PoseEstimation:
 
     def find_essential_matrix(self, match_kp1, match_kp2):
         # TODO: check torch.ones() part: how do we decide on matched keypoints' weights??
+        
+        #fun_mat = kornia.geometry.find_fundamental(match_kp1, match_kp2,
+        #                                           torch.ones((match_kp1.shape[0], match_kp1.shape[1])).to("cuda"))
+
+        ##################################DELETE THIS FOR PRODUCTION###############################################
         fun_mat = kornia.geometry.find_fundamental(match_kp1, match_kp2,
-                                                   torch.ones((match_kp1.shape[0], match_kp1.shape[1])).to("cuda"))
+                                                   torch.ones((match_kp1.shape[0], match_kp1.shape[1])).to("cpu"))
+
 
         ess_mat = kornia.geometry.essential_from_fundamental(fun_mat, self.K1, self.K2)
         return ess_mat
