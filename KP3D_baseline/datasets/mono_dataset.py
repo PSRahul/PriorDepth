@@ -138,7 +138,6 @@ class MonoDataset(data.Dataset):
         inputs = {}
         # TODO: make color augmentation works if needed. code fails when this do_color_aug is True.
         do_color_aug = self.is_train and random.random() > 0.5
-        do_color_aug = 0
         do_flip = self.is_train and random.random() > 0.5
         line = self.filenames[index].split()
         folder = line[0]
