@@ -136,7 +136,6 @@ class MonoDataset(data.Dataset):
             3       images resized to (self.width // 8, self.height // 8)
         """
         inputs = {}
-        # TODO: make color augmentation works if needed. code fails when this do_color_aug is True.
         do_color_aug = self.is_train and random.random() > 0.5
         do_flip = self.is_train and random.random() > 0.5
         line = self.filenames[index].split()
