@@ -40,6 +40,7 @@ class KP3D_Baseline(nn.Module):
         return {'kp{}_score'.format(i): score, 'kp{}_coord'.format(i): coord, 'kp{}_feat'.format(i):  feat}
 
     def batch_reshape_kp2d_preds(self, kp2d_output,threshold=0.3):
+        score, coord, feat = kp2d_output
         org_shape=score.shape
         new_shape=(org_shape[0],org_shape[2]*org_shape[3],org_shape[1])
         score, coord, feat = score.permute(0,2,3,1),coord.permute(0,2,3,1),feat.permute(0,2,3,1)
@@ -84,7 +85,7 @@ class KP3D_Baseline(nn.Module):
 
         outputs.update(kp2d_output)
 
-        R, t = self.pose_estimator.get_pose(kp2d_output['kp_coord'], kp2d_output['kp2_feat'])
+        R, t = self.pose_estimator.get_pose(kp2d_output['kp_coord'], kp2d_output['kp_feat'])
 
         outputs["R"] = R
         outputs["t"] = t
