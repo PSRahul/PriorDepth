@@ -33,18 +33,11 @@ class Trainer:
         datasets_dict = {"kitti": datasets.KITTIRAWDataset,
                          "kitti_odom": datasets.KITTIOdomDataset}
         self.dataset = datasets_dict[self.opt.dataset]
-        # self.K = torch.tensor([[[0.58, 0, 0.5, 0],
-        #                        [0, 1.92, 0.5, 0],
-        #                        [0, 0, 1, 0],
-        #                        [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
-        self.K = torch.tensor([[[371.2000, 0.0000, 320.0000, 0.0000],
-                                [0.0000, 368.6400, 96.0000, 0.0000],
-                                [0.0000, 0.0000, 1.0000, 0.0000],
-                                [0.0000, 0.0000, 0.0000, 1.0000]]]).to("cpu" if self.opt.no_cuda else "cuda")
+        self.K = torch.tensor([[[0.58, 0, 0.5, 0],
+                               [0, 1.92, 0.5, 0],
+                               [0, 0, 1, 0],
+                               [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
         fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
-        
-        #this seems like a local link of yours,
-        #fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "splits", self.opt.split, "{}_files.txt")
 
         train_filenames = readlines(fpath.format("train"))
         val_filenames = readlines(fpath.format("val"))
@@ -154,10 +147,10 @@ class Trainer:
         print('after forward')
         # TODO: generate_images_pred should produce warped images based on rotation and translation
         # TODO: make it work for sure :D
-        #self.generate_images_pred(inputs, outputs)
-        #print(inputs)
-        #print(outputs)
-        #exit(0)
+        # self.generate_images_pred(inputs, outputs)
+        # print(inputs)
+        # print(outputs)
+        exit(0)
         # TODO: color and color_aug images are in inputs
         # TODO: have projected corresponding outputs for this function to calculate reprojection loss
         losses = self.compute_reprojection_loss(inputs, outputs)

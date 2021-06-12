@@ -15,7 +15,7 @@ class KP3D_Baseline(nn.Module):
         # self.keypoint_encoder = KeypointEncoder(self.opt.weights_init == "pretrained", self.opt.with_drop)
         # self.keypoint_decoder = KeypointDecoder()
         self.keypoint_net = KeypointNet()
-        self.pose_estimator = PoseEstimation(K1, K2)
+        self.pose_estimator = PoseEstimation(K1, K2, self.opt.no_cuda)
         ## TODO: // add K1 and K2 to options! or check whether K is correct in trainer.py line 36
 
     def reshape_kp2d_preds(self, kp_output, i):
