@@ -4,14 +4,15 @@ from .depth_decoder import DepthDecoder
 from .pose_estimation import PoseEstimation
 from .keypoint_net import KeypointNet
 import torch
+import os
 
 
 class KP3D_Baseline(nn.Module):
-    def __init__(self, options, K1, K2):
+    def __init__(self, options, K1, K2,epoch,batch_idx):
         super(KP3D_Baseline, self).__init__()
         self.opt = options
 
-        if torch.cuda.is_available() and not args.no_cuda:
+        if torch.cuda.is_available() and not self.opt.no_cuda:
             device = torch.device("cuda")
         else:
             device = torch.device("cpu")
@@ -48,8 +49,10 @@ class KP3D_Baseline(nn.Module):
             checkpoint = torch.load(self.opt.kp2d_initial_ckpt, map_location=device)
             self.keypoint_net.load_state_dict(checkpoint['state_dict'])
 
+        if not os.path.exists(self.opt.log_dir+"keypoint_vis"):
+            os.makedirs(self.opt.log_dir+"keypoint_vis")
         
-        self.pose_estimator = PoseEstimation(K1, K2, self.opt.no_cuda)
+        self.pose_estimator = PoseEstimation(K1, K2, self.opt.no_cuda,self.opt.log_dir)
         ## TODO: // add K1 and K2 to options! or check whether K is correct in trainer.py line 36
 
     # def reshape_kp2d_preds(self, kp_output, i):
@@ -100,7 +103,7 @@ class KP3D_Baseline(nn.Module):
         return {'kp{}_score'.format(j): score_filtered, 'kp{}_coord'.format(j): coord_filtered, 'kp{}_feat'.format(j): feat_filtered}
     
 
-    def forward(self, input_image):
+    def forward(self, input_image,epoch,batch_idx):
         # make sure color, 0, 0 is target image and color, 1, 0 is context image
         # calculate transformation matrix from target to context
         # warp target pixels to obtain context pixels
@@ -120,8 +123,10 @@ class KP3D_Baseline(nn.Module):
         outputs.update(kp2d_output1)
         outputs.update(kp2d_output2)
 
-        R, t = self.pose_estimator.get_pose(kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
-                                            kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'])
+        R, t = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", 1, 0],
+                                            kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
+                                            kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
+                                            epoch,batch_idx)
 
         outputs["R"] = R
         outputs["t"] = t

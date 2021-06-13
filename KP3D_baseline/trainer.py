@@ -38,9 +38,10 @@ class Trainer:
                                [0, 1.92, 0.5, 0],
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
-        fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
+        #fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
         #fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/splits", self.opt.split, "{}_files.txt")
-
+        fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
+        
         train_filenames = readlines(fpath.format("train"))
         val_filenames = readlines(fpath.format("val"))
         img_ext = '.png' if self.opt.png else '.jpg'
@@ -64,7 +65,7 @@ class Trainer:
             num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
         self.val_iter = iter(self.val_loader)
 
-        self.model = KP3D_Baseline(self.opt, self.K, self.K).to(self.device)
+        self.model = KP3D_Baseline(self.opt, self.K, self.K,0,0).to(self.device)
 
         self.model_optimizer = optim.Adam(self.model.parameters(), self.opt.learning_rate)
         self.model_lr_scheduler = optim.lr_scheduler.StepLR(
@@ -122,7 +123,7 @@ class Trainer:
         self.model.train()
         for batch_idx, inputs in enumerate(self.train_loader):
             before_op_time = time.time()
-            outputs, losses = self.process_batch(inputs)
+            outputs, losses = self.process_batch(inputs,batch_idx)
             self.model_optimizer.zero_grad()
             losses["loss"].backward()
             self.model_optimizer.step()
@@ -141,10 +142,10 @@ class Trainer:
                 self.val()
             self.step += 1
 
-    def process_batch(self, inputs):
+    def process_batch(self, inputs,batch_idx):
         for key, ipt in inputs.items():
             inputs[key] = ipt.to(self.device)
-        outputs = self.model(inputs)
+        outputs = self.model(inputs,self.epoch,batch_idx)
         self.generate_images_pred(inputs, outputs)
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
@@ -160,7 +161,7 @@ class Trainer:
             inputs = self.val_iter.next()
 
         with torch.no_grad():
-            outputs, losses = self.process_batch(inputs)
+            outputs, losses = self.process_batch(inputs,0)
 
             if "depth_gt" in inputs:
                 self.compute_depth_losses(inputs, outputs, losses)
@@ -215,7 +216,7 @@ class Trainer:
 
             if not self.opt.disable_automasking:
                 # add random numbers to break ties
-                if torch.cuda.is_available() and not args.no_cuda:
+                if torch.cuda.is_available() and not self.opt.no_cuda:
                     identity_reprojection_loss += torch.randn(
                     identity_reprojection_loss.shape).cuda() * 0.00001
                 else:
