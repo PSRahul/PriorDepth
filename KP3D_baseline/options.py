@@ -89,8 +89,8 @@ class KP3DOptions:
                                  nargs="+",
                                  type=int,
                                  help="frames to load",
-                                 #default=[0, -1, 1])
-                                 default=[0, 1])
+                                 default=[0, -1, 1])
+                                 #default=[0, 1])
         self.parser.add_argument("--kp2d_initial_ckpt",
                                  nargs="?",
                                  type=str,
