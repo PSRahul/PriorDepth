@@ -49,8 +49,8 @@ class KP3D_Baseline(nn.Module):
             checkpoint = torch.load(self.opt.kp2d_initial_ckpt, map_location=device)
             self.keypoint_net.load_state_dict(checkpoint['state_dict'])
 
-        if not os.path.exists(self.opt.log_dir+"keypoint_vis"):
-            os.makedirs(self.opt.log_dir+"keypoint_vis")
+        if not os.path.exists(self.opt.log_dir+"/keypoint_vis"):
+            os.makedirs(self.opt.log_dir+"/keypoint_vis")
         
         self.pose_estimator = PoseEstimation(K1, K2, self.opt.no_cuda,self.opt.log_dir)
         ## TODO: // add K1 and K2 to options! or check whether K is correct in trainer.py line 36
