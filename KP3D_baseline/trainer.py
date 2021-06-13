@@ -106,7 +106,7 @@ class Trainer:
         print('Trainer is created successfully.')
 
     def train(self):
-        print('in train')
+        print('Training starts!')
         self.epoch = 0
         self.step = 0
         self.start_time = time.time()
@@ -116,22 +116,13 @@ class Trainer:
                 self.save_model()
 
     def run_epoch(self):
-        print('in run epoch')
-        print("Training")
         self.model.train()
-        #print('line 102')
         for batch_idx, inputs in enumerate(self.train_loader):
-            #print('line 104')
-            #print(inputs.keys())
-            #print(len(inputs))
             before_op_time = time.time()
-            print('in first batch')
             outputs, losses = self.process_batch(inputs)
-            print('after process_batch')
             self.model_optimizer.zero_grad()
             losses["loss"].backward()
             self.model_optimizer.step()
-            print('line 114')
             self.model_lr_scheduler.step()
 
             duration = time.time() - before_op_time
@@ -139,19 +130,12 @@ class Trainer:
             # log less frequently after the first 2000 steps to save time & disk space
             early_phase = batch_idx % self.opt.log_frequency == 0 and self.step < 2000
             late_phase = self.step % 2000 == 0
-            print('line 122')
             if early_phase or late_phase:
                 self.log_time(batch_idx, duration, losses["loss"].cpu().data)
-                # TODO: check for depth_gt in inputs and whether we need it or not
-                # TODO: if it is needed work on adding it with also check whether compute_depth_losses works for us
                 if "depth_gt" in inputs:
-                    self.compute_depth_losses(inputs, outputs, losses)
-                print('line 128')
-                # TODO: as final check logging!
+                   self.compute_depth_losses(inputs, outputs, losses)
                 self.log("train", inputs, outputs, losses)
                 self.val()
-                print('line 131')
-            print('exiting run epoch')
             self.step += 1
 
     def process_batch(self, inputs):
@@ -159,13 +143,29 @@ class Trainer:
             inputs[key] = ipt.to(self.device)
         outputs = self.model(inputs)
         self.generate_images_pred(inputs, outputs)
-        #losses = self.compute_reprojection_loss(inputs[('color', 1, 0)], outputs[('color', 1, 0)])
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
 
-    # TODO: if train works correctly, this should be easy. Work on val() after being sure train works correctly.
     def val(self):
-        pass
+        """Validate the model on a single minibatch
+               """
+        self.model.eval()
+        try:
+            inputs = self.val_iter.next()
+        except StopIteration:
+            self.val_iter = iter(self.val_loader)
+            inputs = self.val_iter.next()
+
+        with torch.no_grad():
+            outputs, losses = self.process_batch(inputs)
+
+            if "depth_gt" in inputs:
+                self.compute_depth_losses(inputs, outputs, losses)
+
+            self.log("val", inputs, outputs, losses)
+            del inputs, outputs, losses
+
+        self.model.train()
 
     def compute_losses(self, inputs, outputs):
         losses = {}
@@ -320,17 +320,10 @@ class Trainer:
                     "disp_{}/{}".format(s, j),
                     normalize_image(outputs[("disp", s)][j]), self.step)
 
-                # if self.opt.predictive_mask:
-                #     for f_idx, frame_id in enumerate(self.opt.frame_ids[1:]):
-                #         writer.add_image(
-                #             "predictive_mask_{}_{}/{}".format(frame_id, s, j),
-                #             outputs["predictive_mask"][("disp", s)][j, f_idx][None, ...],
-                #             self.step)
-
-                # elif not self.opt.disable_automasking:
-                #     writer.add_image(
-                #         "automask_{}/{}".format(s, j),
-                #         outputs["identity_selection/{}".format(s)][j][None, ...], self.step)
+                # automasking
+                writer.add_image(
+                    "automask_{}/{}".format(s, j),
+                    outputs["identity_selection/{}".format(s)][j][None, ...], self.step)
 
     def save_model(self):
         """Save model weights to disk
@@ -339,7 +332,6 @@ class Trainer:
         if not os.path.exists(save_folder):
             os.makedirs(save_folder)
 
-        # TODO: change for all baseline model including KeypointNet!
         for model_name, model in self.model.items():
             save_path = os.path.join(save_folder, "{}.pth".format(model_name))
             to_save = model.state_dict()
@@ -360,7 +352,6 @@ class Trainer:
             "Cannot find folder {}".format(self.opt.load_weights_folder)
         print("loading model from folder {}".format(self.opt.load_weights_folder))
 
-        # TODO: change for all baseline model including KeypointNet!
         for n in self.opt.models_to_load:
             print("Loading {} weights...".format(n))
             path = os.path.join(self.opt.load_weights_folder, "{}.pth".format(n))

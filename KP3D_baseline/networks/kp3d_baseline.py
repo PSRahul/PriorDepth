@@ -78,7 +78,7 @@ class KP3D_Baseline(nn.Module):
         # warp target pixels to obtain context pixels
         # compute photometric loss between target image and warped target image
         outputs = {}
-        print('in forward kp3d')
+
         depth_features = self.depth_encoder(input_image["color", 0, 0])
         disp_outputs = self.depth_decoder(depth_features)
         outputs.update(disp_outputs)
