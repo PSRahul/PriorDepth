@@ -101,6 +101,8 @@ class Trainer:
         else:
             print("No Multiscale")
         # TODO: check for multi-scale depth for md2
+        self.depth_metric_names = [
+            "de/abs_rel", "de/sq_rel", "de/rms", "de/log_rms", "da/a1", "da/a2", "da/a3"]
         print('Trainer is created successfully.')
 
     def train(self):
@@ -142,8 +144,8 @@ class Trainer:
                 self.log_time(batch_idx, duration, losses["loss"].cpu().data)
                 # TODO: check for depth_gt in inputs and whether we need it or not
                 # TODO: if it is needed work on adding it with also check whether compute_depth_losses works for us
-                # if "depth_gt" in inputs:
-                #     self.compute_depth_losses(inputs, outputs, losses)
+                if "depth_gt" in inputs:
+                    self.compute_depth_losses(inputs, outputs, losses)
                 print('line 128')
                 # TODO: as final check logging!
                 self.log("train", inputs, outputs, losses)
@@ -157,12 +159,88 @@ class Trainer:
             inputs[key] = ipt.to(self.device)
         outputs = self.model(inputs)
         self.generate_images_pred(inputs, outputs)
-        losses = self.compute_reprojection_loss(inputs[('color', 1, 0)], outputs[('color', 1, 0)])
+        #losses = self.compute_reprojection_loss(inputs[('color', 1, 0)], outputs[('color', 1, 0)])
+        losses = self.compute_losses(inputs, outputs)
         return outputs, losses
 
     # TODO: if train works correctly, this should be easy. Work on val() after being sure train works correctly.
     def val(self):
         pass
+
+    def compute_losses(self, inputs, outputs):
+        losses = {}
+        total_loss = 0
+
+        for scale in self.opt.scales:
+            loss = 0
+            reprojection_losses = []
+
+            if self.opt.v1_multiscale:
+                source_scale = scale
+            else:
+                source_scale = 0
+
+            disp = outputs[("disp", scale)]
+            color = inputs[("color", 0, scale)]
+            target = inputs[("color", 0, source_scale)]
+
+
+            pred = outputs[("color", 1, scale)]
+            reprojection_losses.append(self.compute_reprojection_loss(pred, target))
+
+            reprojection_losses = torch.cat(reprojection_losses, 1)
+
+            if not self.opt.disable_automasking:
+                identity_reprojection_losses = []
+
+                pred = inputs[("color", 1, source_scale)]
+                identity_reprojection_losses.append(
+                    self.compute_reprojection_loss(pred, target))
+
+                identity_reprojection_losses = torch.cat(identity_reprojection_losses, 1)
+
+                if self.opt.avg_reprojection:
+                    identity_reprojection_loss = identity_reprojection_losses.mean(1, keepdim=True)
+                else:
+                    # save both images, and do min all at once below
+                    identity_reprojection_loss = identity_reprojection_losses
+
+            if self.opt.avg_reprojection:
+                reprojection_loss = reprojection_losses.mean(1, keepdim=True)
+            else:
+                reprojection_loss = reprojection_losses
+
+            if not self.opt.disable_automasking:
+                # add random numbers to break ties
+                identity_reprojection_loss += torch.randn(
+                    identity_reprojection_loss.shape).cuda() * 0.00001
+
+                combined = torch.cat((identity_reprojection_loss, reprojection_loss), dim=1)
+            else:
+                combined = reprojection_loss
+
+            if combined.shape[1] == 1:
+                to_optimise = combined
+            else:
+                to_optimise, idxs = torch.min(combined, dim=1)
+
+            if not self.opt.disable_automasking:
+                outputs["identity_selection/{}".format(scale)] = (
+                        idxs > identity_reprojection_loss.shape[1] - 1).float()
+
+            loss += to_optimise.mean()
+
+            mean_disp = disp.mean(2, True).mean(3, True)
+            norm_disp = disp / (mean_disp + 1e-7)
+            smooth_loss = get_smooth_loss(norm_disp, color)
+
+            loss += self.opt.disparity_smoothness * smooth_loss / (2 ** scale)
+            total_loss += loss
+            losses["loss/{}".format(scale)] = loss
+
+            total_loss /= self.num_scales
+            losses["loss"] = total_loss
+        return losses
 
     def compute_reprojection_loss(self, pred, target):
         """Computes reprojection loss between a batch of predicted and target images
@@ -177,6 +255,36 @@ class Trainer:
             reprojection_loss = 0.85 * ssim_loss + 0.15 * l1_loss
 
         return reprojection_loss
+
+    def compute_depth_losses(self, inputs, outputs, losses):
+        """Compute depth metrics, to allow monitoring during training
+
+        This isn't particularly accurate as it averages over the entire batch,
+        so is only used to give an indication of validation performance
+        """
+        depth_pred = outputs[("depth", 0, 0)]
+        depth_pred = torch.clamp(F.interpolate(
+            depth_pred, [375, 1242], mode="bilinear", align_corners=False), 1e-3, 80)
+        depth_pred = depth_pred.detach()
+
+        depth_gt = inputs["depth_gt"]
+        mask = depth_gt > 0
+
+        # garg/eigen crop
+        crop_mask = torch.zeros_like(mask)
+        crop_mask[:, :, 153:371, 44:1197] = 1
+        mask = mask * crop_mask
+
+        depth_gt = depth_gt[mask]
+        depth_pred = depth_pred[mask]
+        depth_pred *= torch.median(depth_gt) / torch.median(depth_pred)
+
+        depth_pred = torch.clamp(depth_pred, min=1e-3, max=80)
+
+        depth_errors = compute_depth_errors(depth_gt, depth_pred)
+
+        for i, metric in enumerate(self.depth_metric_names):
+            losses[metric] = np.array(depth_errors[i].cpu())
 
     def log_time(self, batch_idx, duration, loss):
         """Print a logging statement to the terminal
