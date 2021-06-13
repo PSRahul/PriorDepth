@@ -15,6 +15,12 @@ class KP3D_Baseline(nn.Module):
         # self.keypoint_encoder = KeypointEncoder(self.opt.weights_init == "pretrained", self.opt.with_drop)
         # self.keypoint_decoder = KeypointDecoder()
         self.keypoint_net = KeypointNet()
+
+        if (self.opt.kp2d_initial_ckpt!="None"):
+            print("Using pretrained Model for KP2D",self.opt.kp2d_initial_ckpt)
+            checkpoint = torch.load(self.opt.kp2d_initial_ckpt)
+            self.keypoint_net.load_state_dict(checkpoint['state_dict'])
+
         self.pose_estimator = PoseEstimation(K1, K2, self.opt.no_cuda)
         ## TODO: // add K1 and K2 to options! or check whether K is correct in trainer.py line 36
 

@@ -21,9 +21,11 @@ class KP3DOptions:
                                  type=str,
                                  help="path to the training data",
                                  #default=os.path.join(file_dir,"kitti_data")
-                                 default=os.path.join(file_dir,"../../datasets/kitti_data")
+                                 #default=os.path.join(file_dir,"../../datasets/kitti_data")
                                  #default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
-        )
+                                 default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
+        
+                  
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
@@ -85,6 +87,13 @@ class KP3DOptions:
                                  type=int,
                                  help="frames to load",
                                  default=[0, -1, 1])
+        self.parser.add_argument("--kp2d_initial_ckpt",
+                                 nargs="?",
+                                 type=str,
+                                 help="path to the initial KP2D trained checkpoint",
+                                 #default="None")
+                                 default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline_2/model_keypoint2.ckpt")
+
 
         # OPTIMIZATION options
         # TODO: in real training, check batch size but it seems like it should be 12 for md2!
