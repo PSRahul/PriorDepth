@@ -300,10 +300,10 @@ class Trainer:
 
             # where we warp image!
             for i, frame_id in enumerate(self.opt.frame_ids[1:]):
-                T = torch.zeros((4, 4)).to(self.device)
-                T[:3, :3] = outputs['R']
-                T[:3, 3] = outputs['t'].transpose(1, 2)
-                T[3, 3] = 1
+                T = torch.zeros((self.opt.batch_size, 4, 4)).to(self.device)
+                T[:, :3, :3] = outputs['R']
+                T[:, :3, 3] = outputs['t'].transpose(1, 2)[:, 0, :]
+                T[:, 3, 3] = 1
                 cam_points = self.backproject_depth[source_scale](
                     depth, inputs[("inv_K", source_scale)])
                 pix_coords = self.project_3d[source_scale](
