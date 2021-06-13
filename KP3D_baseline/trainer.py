@@ -37,8 +37,8 @@ class Trainer:
                                [0, 1.92, 0.5, 0],
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
-        #fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
-        fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/splits", self.opt.split, "{}_files.txt")
+        fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
+        #fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/splits", self.opt.split, "{}_files.txt")
 
         train_filenames = readlines(fpath.format("train"))
         val_filenames = readlines(fpath.format("val"))
@@ -252,6 +252,7 @@ class Trainer:
 
         # TODO: change for all baseline model including KeypointNet!
         for n in self.opt.models_to_load:
+            print(self.opt.models_to_load)
             print("Loading {} weights...".format(n))
             path = os.path.join(self.opt.load_weights_folder, "{}.pth".format(n))
             model_dict = self.model[n].state_dict()
