@@ -45,7 +45,7 @@ class KP3D_Baseline(nn.Module):
 
         if (self.opt.kp2d_initial_ckpt!="None"):
             print("Using pretrained Model for KP2D",self.opt.kp2d_initial_ckpt)
-            checkpoint = torch.load(self.opt.kp2d_initial_ckpt)
+            checkpoint = torch.load(self.opt.kp2d_initial_ckpt, map_location=device)
             self.keypoint_net.load_state_dict(checkpoint['state_dict'])
 
         
