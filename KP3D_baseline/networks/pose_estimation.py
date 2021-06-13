@@ -73,8 +73,7 @@ class PoseEstimation:
             R, t, tri_points = self.get_six_dof(ess_mat, match_kp1, match_kp2)
             outputs_R = torch.cat((outputs_R, R), dim=0)
             outputs_t = torch.cat((outputs_t, t), dim=0)
-            #print("Checkpoint 1")
-    
+
         if(batch_idx%250==0):
             with torch.no_grad():
                 self.visualise_matches(input_image_1,input_image_2,match_kp1[0,:,:].cpu(),match_kp2[0,:,:].cpu(),epoch,batch_idx,batch_size)

@@ -20,7 +20,7 @@ class KP3D_Baseline(nn.Module):
         print("LOADING MONODEPTH2 ENCODER")
         self.depth_encoder = ResnetEncoder(18, False)
         #self.opt.weights_init == "pretrained"
-            # extract the height and width of image that this model was trained with
+        # extract the height and width of image that this model was trained with
 
         loaded_dict_enc = torch.load(self.opt.depth_encoder, map_location=device)   
         feed_height = loaded_dict_enc['height']
@@ -28,14 +28,14 @@ class KP3D_Baseline(nn.Module):
         filtered_dict_enc = {k: v for k, v in loaded_dict_enc.items() if k in self.depth_encoder.state_dict()}
         self.depth_encoder.load_state_dict(filtered_dict_enc)
         self.depth_encoder.to(device)
-        self.depth_encoder.eval()
+        #self.depth_encoder.eval()
 
         print("LOADING MONODEPTH2 DECODER")
         self.depth_decoder = DepthDecoder(self.depth_encoder.num_ch_enc, self.opt.scales)
         loaded_dict = torch.load(self.opt.depth_decoder, map_location=device)
         self.depth_decoder.load_state_dict(loaded_dict)
         self.depth_decoder.to(device)
-        self.depth_decoder.eval()
+        #self.depth_decoder.eval()
 
         #self.depth_encoder = ResnetEncoder(self.opt.num_layers, self.opt.weights_init == "pretrained")
         #self.depth_decoder = DepthDecoder(self.depth_encoder.num_ch_enc, self.opt.scales)
@@ -110,25 +110,36 @@ class KP3D_Baseline(nn.Module):
         # compute photometric loss between target image and warped target image
         outputs = {}
 
-        depth_features = self.depth_encoder(input_image["color", 0, 0])
+        depth_features = self.depth_encoder(input_image["color_aug", 0, 0])
         disp_outputs = self.depth_decoder(depth_features)
         outputs.update(disp_outputs)
 
-        kp2d_output1 = self.keypoint_net(input_image["color", 0, 0])
+        kp2d_output1 = self.keypoint_net(input_image["color_aug", 0, 0])
         kp2d_output1 = self.batch_reshape_kp2d_preds(kp2d_output1, 1)
 
-        kp2d_output2 = self.keypoint_net(input_image["color", 1, 0])
+        kp2d_output2 = self.keypoint_net(input_image["color_aug", 1, 0])
         kp2d_output2 = self.batch_reshape_kp2d_preds(kp2d_output2, 2)
+
+        kp2d_output3 = self.keypoint_net(input_image["color_aug", -1, 0])
+        kp2d_output3 = self.batch_reshape_kp2d_preds(kp2d_output3, 3)
 
         outputs.update(kp2d_output1)
         outputs.update(kp2d_output2)
+        outputs.update(kp2d_output3)
 
-        R, t = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", 1, 0],
+        R_t1, t_t1 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", 1, 0],
                                             kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
                                             kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
                                             epoch,batch_idx)
 
-        outputs["R"] = R
-        outputs["t"] = t
+        R_t2, t_t2 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", -1, 0],
+                                            kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
+                                            kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
+                                            epoch,batch_idx)
+
+        outputs["R_t1"] = R_t1
+        outputs["t_t1"] = t_t1
+        outputs["R_t2"] = R_t2
+        outputs["t_t2"] = t_t2
 
         return outputs
