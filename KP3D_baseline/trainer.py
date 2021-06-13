@@ -38,8 +38,8 @@ class Trainer:
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
         #fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
-        #fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/splits", self.opt.split, "{}_files.txt")
-        fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
+        fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/splits", self.opt.split, "{}_files.txt")
+        #fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
         
         train_filenames = readlines(fpath.format("train"))
         val_filenames = readlines(fpath.format("val"))
@@ -301,10 +301,10 @@ class Trainer:
 
             # where we warp image!
             for i, frame_id in enumerate(self.opt.frame_ids[1:]):
-                T = torch.zeros((4, 4)).to(self.device)
-                T[:3, :3] = outputs['R']
-                T[:3, 3] = outputs['t'].transpose(1, 2)
-                T[3, 3] = 1
+                T = torch.zeros((self.opt.batch_size, 4, 4)).to(self.device)
+                T[:, :3, :3] = outputs['R']
+                T[:, :3, 3] = outputs['t'].transpose(1, 2)[:, 0, :]
+                T[:, 3, 3] = 1
                 cam_points = self.backproject_depth[source_scale](
                     depth, inputs[("inv_K", source_scale)])
                 pix_coords = self.project_3d[source_scale](

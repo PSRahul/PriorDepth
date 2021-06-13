@@ -26,9 +26,6 @@ class KP3D_Baseline(nn.Module):
 
     def reshape_kp2d_preds(self, kp_output, i):
         score, coord, feat = kp_output[0], kp_output[1], kp_output[2]
-        # TODO: we need to filter based on scores and then reshape these vectors for pose estimation
-        # TODO: for instance match_mnn in pose_estimation requires len(desc1.shape) == 2
-        # TODO: need to figure out how to filter and reshape these data
         # Score map (B, 1, H_out, W_out)
         # Keypoint coordinates (B, 2, H_out, W_out)
         # Keypoint descriptors (B, 256, H_out, W_out)
@@ -45,7 +42,7 @@ class KP3D_Baseline(nn.Module):
 
         return {'kp{}_score'.format(i): score, 'kp{}_coord'.format(i): coord, 'kp{}_feat'.format(i):  feat}
 
-    def batch_reshape_kp2d_preds(self, kp2d_output,threshold=0.3):
+    def batch_reshape_kp2d_preds(self, kp2d_output, j, threshold=0.3):
         score, coord, feat = kp2d_output
         org_shape=score.shape
         new_shape=(org_shape[0],org_shape[2]*org_shape[3],org_shape[1])
@@ -68,30 +65,35 @@ class KP3D_Baseline(nn.Module):
             coord_filtered[i,:,:]=coord[i,score_i_index,:]
             feat_filtered[i,:,:]=feat[i,score_i_index,:]
          
-        score_filtered=score_filtered[:,0:int(new_shape[1]*threshold)]
-        coord_filtered=coord_filtered[:,0:int(new_shape[1]*threshold),:]
-        feat_filtered=feat_filtered[:,0:int(new_shape[1]*threshold),:]
+        score_filtered=score_filtered[:,0:int(new_shape[1]*threshold)].to("cpu" if self.opt.no_cuda else "cuda")
+        coord_filtered=coord_filtered[:,0:int(new_shape[1]*threshold),:].to("cpu" if self.opt.no_cuda else "cuda")
+        feat_filtered=feat_filtered[:,0:int(new_shape[1]*threshold),:].to("cpu" if self.opt.no_cuda else "cuda")
 
-        return {'kp_score': score_filtered, 'kp_coord': coord_filtered, 'kp_feat': feat_filtered}
+        return {'kp{}_score'.format(j): score_filtered, 'kp{}_coord'.format(j): coord_filtered, 'kp{}_feat'.format(j): feat_filtered}
     
 
     def forward(self, input_image):
-        # TODO: make sure color, 0, 0 is target image and color, 1, 0 is context image
-        # TODO: calculate transformation matrix from target to context
-        # TODO: warp target pixels to obtain context pixels
-        # TODO: compute photometric loss between target image and warped target image
+        # make sure color, 0, 0 is target image and color, 1, 0 is context image
+        # calculate transformation matrix from target to context
+        # warp target pixels to obtain context pixels
+        # compute photometric loss between target image and warped target image
         outputs = {}
         print('in forward kp3d')
         depth_features = self.depth_encoder(input_image["color_aug", 0, 0])
         disp_outputs = self.depth_decoder(depth_features)
         outputs.update(disp_outputs)
 
-        kp2d_output = self.keypoint_net(input_image["color_aug", 0, 0])
-        kp2d_output = self.batch_reshape_kp2d_preds(kp2d_output)
+        kp2d_output1 = self.keypoint_net(input_image["color_aug", 0, 0])
+        kp2d_output1 = self.batch_reshape_kp2d_preds(kp2d_output1, 1)
 
-        outputs.update(kp2d_output)
+        kp2d_output2 = self.keypoint_net(input_image["color_aug", 1, 0])
+        kp2d_output2 = self.batch_reshape_kp2d_preds(kp2d_output2, 2)
 
-        R, t = self.pose_estimator.get_pose(kp2d_output['kp_coord'], kp2d_output['kp_feat'])
+        outputs.update(kp2d_output1)
+        outputs.update(kp2d_output2)
+
+        R, t = self.pose_estimator.get_pose(kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
+                                            kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'])
 
         outputs["R"] = R
         outputs["t"] = t

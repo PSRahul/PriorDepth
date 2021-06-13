@@ -22,10 +22,10 @@ class KP3DOptions:
                                  help="path to the training data",
                                  #default=os.path.join(file_dir,"kitti_data")
                                  #default=os.path.join(file_dir,"../../datasets/kitti_data")
-                                 #default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
-                                 default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
-        
-                  
+                                 default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
+                                 #default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
+
+
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
@@ -92,7 +92,8 @@ class KP3DOptions:
                                  type=str,
                                  help="path to the initial KP2D trained checkpoint",
                                  #default="None")
-                                 default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline_2/model_keypoint2.ckpt")
+                                 #default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline_2/model_keypoint2.ckpt")
+                                 default="/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/KP3D_baseline/trained_models/model_keypoint2_kitti.ckpt")
 
 
         # OPTIMIZATION options
@@ -101,7 +102,7 @@ class KP3DOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=1) # 12
+                                 default=2) # 12
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
