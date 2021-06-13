@@ -43,11 +43,14 @@ class KP3D_Baseline(nn.Module):
         # self.keypoint_encoder = KeypointEncoder(self.opt.weights_init == "pretrained", self.opt.with_drop)
         # self.keypoint_decoder = KeypointDecoder()
         self.keypoint_net = KeypointNet()
-
+        
         if (self.opt.kp2d_initial_ckpt!="None"):
             print("Using pretrained Model for KP2D",self.opt.kp2d_initial_ckpt)
             checkpoint = torch.load(self.opt.kp2d_initial_ckpt, map_location=device)
             self.keypoint_net.load_state_dict(checkpoint['state_dict'])
+
+        for param in self.keypoint_net.parameters():
+            param.requires_grad = False    
 
         if not os.path.exists(self.opt.log_dir+"/keypoint_vis"):
             os.makedirs(self.opt.log_dir+"/keypoint_vis")
