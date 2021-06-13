@@ -11,6 +11,7 @@ import datasets
 from utils2 import *
 from networks.layers import *
 
+import test_visualization
 
 class Trainer:
     def __init__(self, options):
@@ -111,6 +112,9 @@ class Trainer:
         self.start_time = time.time()
         for self.epoch in range(self.opt.num_epochs):
             self.run_epoch()
+            if self.epoch%2: 
+                self.opt["epoch"]=self.epoch
+                test_visualization.test_simpleI(self.opt)
             if (self.epoch + 1) % self.opt.save_frequency == 0:
                 self.save_model()
 
