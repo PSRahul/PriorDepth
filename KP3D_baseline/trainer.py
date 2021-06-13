@@ -215,8 +215,11 @@ class Trainer:
 
             if not self.opt.disable_automasking:
                 # add random numbers to break ties
-                identity_reprojection_loss += torch.randn(
+                if torch.cuda.is_available() and not args.no_cuda:
+                    identity_reprojection_loss += torch.randn(
                     identity_reprojection_loss.shape).cuda() * 0.00001
+                else:
+                    identity_reprojection_loss += torch.randn(identity_reprojection_loss.shape).cpu() * 0.00001
 
                 combined = torch.cat((identity_reprojection_loss, reprojection_loss), dim=1)
             else:
