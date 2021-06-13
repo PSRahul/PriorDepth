@@ -32,7 +32,7 @@ class PoseEstimation:
         return kornia.geometry.motion_from_essential_choose_solution(ess_mat, self.K1, self.K2, kp1, kp2)
 
     def visualise_matches(self,input_image_1,input_image_2,kp1,kp2,epoch,batch_idx,batch_size):
-        image_1,image_2=np.rollaxis(input_image_1[batch_size-1,:,:,:].detach().numpy(),0,3),np.rollaxis(input_image_2[batch_size-1,:,:,:].detach().numpy(),0,3)
+        image_1,image_2=np.rollaxis(input_image_1[batch_size-1,:,:,:].cpu().detach().numpy(),0,3),np.rollaxis(input_image_2[batch_size-1,:,:,:].cpu().detach().numpy(),0,3)
         fig = plt.figure(figsize=(15,15))
         ax1 = fig.add_subplot(121)
         ax2 = fig.add_subplot(122)
@@ -77,7 +77,7 @@ class PoseEstimation:
     
         if(batch_idx%250==0):
             with torch.no_grad():
-                self.visualise_matches(input_image_1,input_image_2,match_kp1[0,:,:],match_kp2[0,:,:],epoch,batch_idx,batch_size)
+                self.visualise_matches(input_image_1,input_image_2,match_kp1[0,:,:].cpu(),match_kp2[0,:,:].cpu(),epoch,batch_idx,batch_size)
 
         return outputs_R, outputs_t
 
