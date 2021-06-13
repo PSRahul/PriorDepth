@@ -8,6 +8,8 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import argparse
+from datetime import datetime
+date_time = datetime.now().strftime("%m_%d_%Y__%H_%M_%S")
 
 file_dir = os.path.dirname(__file__)  # the directory that options.py resides in
 
@@ -23,13 +25,14 @@ class KP3DOptions:
                                  #default=os.path.join(file_dir,"kitti_data")
                                  #default=os.path.join(file_dir,"../../datasets/kitti_data"))
                                  #default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
-                                 default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
-
+                                 #default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
+                                 default="/home/ubuntu/PriorDepth/datasets/kitti_data/")
 
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
-                                 default=os.path.join(os.path.expanduser("~"), "tmp"))
+                                 #default=os.path.join(os.path.expanduser("~"), "tmp"))
+                                 default="/home/ubuntu/PriorDepth/KP3D_exp_logs/"+str(date_time))
 
         # TRAINING options
         self.parser.add_argument("--model_name",
@@ -92,8 +95,8 @@ class KP3DOptions:
                                  nargs="?",
                                  type=str,
                                  help="path to the initial KP2D trained checkpoint",
-                                 #default="trained_models/model_keypoint12_coco.ckpt")
-                                 default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline_2/model_keypoint2_kitti.ckpt")
+                                 default="trained_models/model_keypoint12_coco.ckpt")
+                                 #default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline_2/model_keypoint2_kitti.ckpt")
                                  #default="/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/KP3D_baseline/trained_models/model_keypoint2_kitti.ckpt")
         self.parser.add_argument("--depth_encoder",
                                  nargs="?",
@@ -112,7 +115,7 @@ class KP3DOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=2) # 12
+                                 default=14) # 12
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
@@ -120,7 +123,7 @@ class KP3DOptions:
         self.parser.add_argument("--num_epochs",
                                  type=int,
                                  help="number of epochs",
-                                 default=20)
+                                 default=8)
         self.parser.add_argument("--scheduler_step_size",
                                  type=int,
                                  help="step size of the scheduler",
@@ -170,7 +173,7 @@ class KP3DOptions:
         self.parser.add_argument("--num_workers",
                                  type=int,
                                  help="number of dataloader workers",
-                                 default=1) # 12
+                                 default=4) # 12
 
         # LOADING options
         self.parser.add_argument("--load_weights_folder",
@@ -186,7 +189,7 @@ class KP3DOptions:
         self.parser.add_argument("--log_frequency",
                                  type=int,
                                  help="number of batches between each tensorboard log",
-                                 default=250)
+                                 default=20)
         self.parser.add_argument("--save_frequency",
                                  type=int,
                                  help="number of epochs between each save",
