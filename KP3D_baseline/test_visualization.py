@@ -15,28 +15,17 @@ from torchvision import transforms, datasets
 import networks
 from layers import disp_to_depth
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description='Simple testing funtion for Monodepthv2 models.')
 
-    parser.add_argument('--image_path', type=str,
-                        help='path to a test image or folder of images', required=True)
-    parser.add_argument('--ext', type=str,
-                        help='image extension to search for in folder', default="jpg")
-    parser.add_argument("--no_cuda",
-                        help='if set, disables CUDA',
-                        action='store_true')
-
-    return parser.parse_args()
-
-
-def test_simple(args):
+def test_simple(args,epoch):
     """Function to predict for a single image or folder of images
     """
     if torch.cuda.is_available() and not args.no_cuda:
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
+
+
+    image_path ="assets/test_image.jpg"
 
     # LOADING PRETRAINED MODEL
     print("Loading pretrained encoder")
@@ -62,16 +51,16 @@ def test_simple(args):
     depth_decoder.eval()
 
     # FINDING INPUT IMAGES
-    if os.path.isfile(args.image_path):
+    if os.path.isfile(image_path):
         # Only testing on a single image
-        paths = [args.image_path]
-        output_directory = os.path.dirname(args.image_path)
-    elif os.path.isdir(args.image_path):
+        paths = [image_path]
+        output_directory = os.path.dirname(image_path)
+    elif os.path.isdir(image_path):
         # Searching folder for images
-        paths = glob.glob(os.path.join(args.image_path, '*.{}'.format(args.ext)))
-        output_directory = args.image_path
+        paths = glob.glob(os.path.join(image_path, '*.{}'.format(args.ext)))
+        output_directory = image_path
     else:
-        raise Exception("Can not find args.image_path: {}".format(args.image_path))
+        raise Exception("Can not find image_path: {}".format(image_path))
 
     print("-> Predicting on {:d} test images".format(len(paths)))
 
@@ -112,7 +101,7 @@ def test_simple(args):
             colormapped_im = (mapper.to_rgba(disp_resized_np)[:, :, :3] * 255).astype(np.uint8)
             im = pil.fromarray(colormapped_im)
 
-            name_dest_im = os.path.join(output_directory, "{}_disp{}.jpeg".format(output_name,args.epoch))
+            name_dest_im = os.path.join(output_directory, "{}_disp{}.jpeg".format(output_name,epoch))
             im.save(name_dest_im)
 
             print("   Processed {:d} of {:d} images - saved predictions to:".format(
@@ -121,10 +110,3 @@ def test_simple(args):
             print("   - {}".format(name_dest_npy))
 
     print('-> Done!')
-
-
-
-if __name__ == '__main__':
-    args = parse_args()
-    test_simple(args)
-    

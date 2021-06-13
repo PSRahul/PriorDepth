@@ -112,9 +112,9 @@ class Trainer:
         self.start_time = time.time()
         for self.epoch in range(self.opt.num_epochs):
             self.run_epoch()
-            if self.epoch%2: 
-                self.opt["epoch"]=self.epoch
-                test_visualization.test_simpleI(self.opt)
+            if not (self.epoch%2):
+                print("Saving an Intermediate depth estimation of a test image after epoch.{}".format(self.epoch))
+                test_visualization.test_simpleI(self.opt,self.epoch)
             if (self.epoch + 1) % self.opt.save_frequency == 0:
                 self.save_model()
 
