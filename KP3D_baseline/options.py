@@ -95,7 +95,7 @@ class KP3DOptions:
                                  nargs="?",
                                  type=str,
                                  help="path to the initial KP2D trained checkpoint",
-                                 default="trained_models/model_keypoint12_coco.ckpt")
+                                 default="trained_models/model_keypoint2_kitti.ckpt")
                                  #default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline_2/model_keypoint2_kitti.ckpt")
                                  #default="/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/KP3D_baseline/trained_models/model_keypoint2_kitti.ckpt")
         self.parser.add_argument("--depth_encoder",
