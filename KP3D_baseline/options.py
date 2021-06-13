@@ -92,10 +92,19 @@ class KP3DOptions:
                                  nargs="?",
                                  type=str,
                                  help="path to the initial KP2D trained checkpoint",
-                                 #default="None")
+                                 default="trained_models/model_keypoint12_coco.ckpt")
                                  #default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline_2/model_keypoint2.ckpt")
-                                 default="/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/KP3D_baseline/trained_models/model_keypoint2_kitti.ckpt")
-
+                                 #default="/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/KP3D_baseline/trained_models/model_keypoint2_kitti.ckpt")
+        self.parser.add_argument("--depth_encoder",
+                                 nargs="?",
+                                 type=str,
+                                 help="path to the Monodepth encoder",
+                                 default="trained_models/encoder.pth")
+        self.parser.add_argument("--depth_decoder",
+                                 nargs="?",
+                                 type=str,
+                                 help="path to the Monodepth decoder",
+                                 default="trained_models/depth.pth")
 
         # OPTIMIZATION options
         # TODO: in real training, check batch size but it seems like it should be 12 for md2!

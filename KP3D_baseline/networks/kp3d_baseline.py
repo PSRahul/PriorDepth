@@ -10,8 +10,35 @@ class KP3D_Baseline(nn.Module):
     def __init__(self, options, K1, K2):
         super(KP3D_Baseline, self).__init__()
         self.opt = options
-        self.depth_encoder = ResnetEncoder(self.opt.num_layers, self.opt.weights_init == "pretrained")
+
+        if torch.cuda.is_available() and not args.no_cuda:
+            device = torch.device("cuda")
+        else:
+            device = torch.device("cpu")
+
+        print("LOADING MONODEPTH2 ENCODER")
+        self.depth_encoder = ResnetEncoder(18, False)
+        #self.opt.weights_init == "pretrained"
+            # extract the height and width of image that this model was trained with
+
+        loaded_dict_enc = torch.load(self.opt.depth_encoder, map_location=device)   
+        feed_height = loaded_dict_enc['height']
+        feed_width = loaded_dict_enc['width']
+        filtered_dict_enc = {k: v for k, v in loaded_dict_enc.items() if k in self.depth_encoder.state_dict()}
+        self.depth_encoder.load_state_dict(filtered_dict_enc)
+        self.depth_encoder.to(device)
+        self.depth_encoder.eval()
+
+        print("LOADING MONODEPTH2 DECODER")
         self.depth_decoder = DepthDecoder(self.depth_encoder.num_ch_enc, self.opt.scales)
+        loaded_dict = torch.load(self.opt.depth_decoder, map_location=device)
+        self.depth_decoder.load_state_dict(loaded_dict)
+        self.depth_decoder.to(device)
+        self.depth_decoder.eval()
+
+        #self.depth_encoder = ResnetEncoder(self.opt.num_layers, self.opt.weights_init == "pretrained")
+        #self.depth_decoder = DepthDecoder(self.depth_encoder.num_ch_enc, self.opt.scales)
+        
         # self.keypoint_encoder = KeypointEncoder(self.opt.weights_init == "pretrained", self.opt.with_drop)
         # self.keypoint_decoder = KeypointDecoder()
         self.keypoint_net = KeypointNet()
@@ -21,6 +48,7 @@ class KP3D_Baseline(nn.Module):
             checkpoint = torch.load(self.opt.kp2d_initial_ckpt)
             self.keypoint_net.load_state_dict(checkpoint['state_dict'])
 
+        
         self.pose_estimator = PoseEstimation(K1, K2, self.opt.no_cuda)
         ## TODO: // add K1 and K2 to options! or check whether K is correct in trainer.py line 36
 
@@ -97,4 +125,5 @@ class KP3D_Baseline(nn.Module):
 
         outputs["R"] = R
         outputs["t"] = t
+
         return outputs
