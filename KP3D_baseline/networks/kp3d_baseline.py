@@ -55,7 +55,7 @@ class KP3D_Baseline(nn.Module):
         if not os.path.exists(self.opt.log_dir+"/keypoint_vis"):
             os.makedirs(self.opt.log_dir+"/keypoint_vis")
         
-        self.pose_estimator = PoseEstimation(K1, K2, self.opt.no_cuda,self.opt.log_dir)
+        self.pose_estimator = PoseEstimation(K1, K2, self.opt.no_cuda,self.opt.log_dir,self.opt.visualise_images)
         ## TODO: // add K1 and K2 to options! or check whether K is correct in trainer.py line 36
 
     # def reshape_kp2d_preds(self, kp_output, i):

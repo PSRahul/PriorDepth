@@ -6,12 +6,13 @@ import numpy as np
 
 
 class PoseEstimation:
-    def __init__(self, K1, K2, cuda,log_dir):
+    def __init__(self, K1, K2, cuda,log_dir,visualise_images):
         # TODO: check this K1&2 is correct or not!
         self.K1 = K1[:, :3, :3]
         self.K2 = K2[:, :3, :3]
         self.device = torch.device("cpu" if cuda else "cuda")
         self.log_dir=log_dir
+        self.visualise_images=visualise_images
 
     def match_keypoints(self, kp1, kp2, des1, des2):
         match_dist, match_idx = kornia.feature.match_mnn(des1, des2)
@@ -74,9 +75,10 @@ class PoseEstimation:
             outputs_R = torch.cat((outputs_R, R), dim=0)
             outputs_t = torch.cat((outputs_t, t), dim=0)
 
-        if(batch_idx%250==0):
-            with torch.no_grad():
-                self.visualise_matches(input_image_1,input_image_2,match_kp1[0,:,:].cpu(),match_kp2[0,:,:].cpu(),epoch,batch_idx,batch_size)
-        plt.close('all')
+        if(self.visualise_images):
+            if(batch_idx%250==0):
+                with torch.no_grad():
+                    self.visualise_matches(input_image_1,input_image_2,match_kp1[0,:,:].cpu(),match_kp2[0,:,:].cpu(),epoch,batch_idx,batch_size)
+            plt.close('all')
         return outputs_R, outputs_t
 

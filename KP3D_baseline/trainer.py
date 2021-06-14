@@ -40,7 +40,8 @@ class Trainer:
                                [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
         #fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
         #fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/splits", self.opt.split, "{}_files.txt")
-        fpath = os.path.join(os.path.dirname(__file__), "datasets/splits", self.opt.split, "{}_files.txt")
+        fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
+        #fpath = os.path.join(os.path.dirname(__file__), "datasets/splits", self.opt.split, "{}_files.txt")
         print("Using KITTI splits in",fpath)
         #fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
         
@@ -113,11 +114,14 @@ class Trainer:
         self.epoch = 0
         self.step = 0
         self.start_time = time.time()
+        self.save_model()
+        self.val()
         for self.epoch in range(self.opt.num_epochs):
             self.run_epoch()
-            if not (self.epoch % 2):
-                print("Saving an Intermediate depth estimation of a test image after epoch.{}".format(self.epoch))
-                test_visualization.test_simpleI(self.opt,self.epoch)
+            if(self.opt.visualise_images):
+                if not (self.epoch % 2):
+                    print("Saving an Intermediate depth estimation of a test image after epoch.{}".format(self.epoch))
+                    test_visualization.test_simpleI(self.opt,self.epoch)
             if (self.epoch + 1) % self.opt.save_frequency == 0:
                 self.save_model()
 
@@ -341,7 +345,14 @@ class Trainer:
         if not os.path.exists(save_folder):
             os.makedirs(save_folder)
 
-        for model_name, model in self.model.items():
+        #print(self.model.modules())
+        modeldict = {
+             "depth_encoder": self.model.depth_encoder,
+              "depth_decoder": self.model.depth_decoder,
+              "keypoint_net": self.model.keypoint_net
+                    }
+
+        for model_name, model in modeldict.items():
             save_path = os.path.join(save_folder, "{}.pth".format(model_name))
             to_save = model.state_dict()
             if model_name == 'encoder':
@@ -350,6 +361,7 @@ class Trainer:
                 to_save['width'] = self.opt.width
                 to_save['use_stereo'] = self.opt.use_stereo
             torch.save(to_save, save_path)
+
 
         save_path = os.path.join(save_folder, "{}.pth".format("adam"))
         torch.save(self.model_optimizer.state_dict(), save_path)
