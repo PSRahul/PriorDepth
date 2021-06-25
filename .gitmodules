@@ -1,0 +1,6 @@
+[submodule "KP2D"]
+	path = KP2D
+	url = https://github.com/TRI-ML/KP2D
+[submodule "MD2"]
+	path = MD2
+	url = https://github.com/nianticlabs/monodepth2
