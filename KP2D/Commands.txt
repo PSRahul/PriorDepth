@@ -10,6 +10,8 @@ conda env remove -n kp2d_conda
 
 python train_keypoint_net.py kp2d/configs/v4.yaml --pretrained_model model10.ckpt
 
+python eval_keypoint_net.py --pretrained_model kp2d/models/pretrained_models/v4.ckpt --input /media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/Prior_Depth_Phase2/datasets/HPatches
+
 conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=11.0 -c pytorch
 conda install -c conda-forge tensorboard
 conda install -c conda-forge pyparsing pyyaml tensorboard

@@ -9,7 +9,7 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from PIL import Image
-
+import PIL
 from kp2d.utils.image import image_grid
 
 
@@ -353,6 +353,8 @@ def ha_augment_sample(data, jitter_paramters=[0.5, 0.5, 0.2, 0.05], patch_ratio=
 
     target_img = non_spatial_augmentation(target_img, jitter_paramters=jitter_paramters, color_order=color_order, to_gray=to_gray)
     source_img = non_spatial_augmentation(source_img, jitter_paramters=jitter_paramters, color_order=color_order, to_gray=to_gray)
+
+    
 
     data['image'] = target_img.squeeze()
     data['image_aug'] = source_img.squeeze()

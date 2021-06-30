@@ -75,6 +75,8 @@ class KP3DOptions:
                                  type=int,
                                  help="scales used in the loss",
                                  default=[0, 1, 2, 3])
+                                 #default=[0,1])
+
         self.parser.add_argument("--min_depth",
                                  type=float,
                                  help="minimum depth",
@@ -121,7 +123,7 @@ class KP3DOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=2) # 8
+                                 default=3) # 8
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
@@ -129,7 +131,7 @@ class KP3DOptions:
         self.parser.add_argument("--num_epochs",
                                  type=int,
                                  help="number of epochs",
-                                 default=8)
+                                 default=1)
         self.parser.add_argument("--scheduler_step_size",
                                  type=int,
                                  help="step size of the scheduler",

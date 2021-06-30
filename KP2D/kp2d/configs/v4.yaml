@@ -9,7 +9,7 @@
 model:
     params:
         use_color: True
-        with_io: True
+        with_io: False
         do_upsample: True
         do_cross: True
         descriptor_loss: True

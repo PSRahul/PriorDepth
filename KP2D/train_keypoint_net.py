@@ -26,7 +26,7 @@ def parse_args():
     """Parse arguments for training script"""
     parser = argparse.ArgumentParser(description='KP2D training script')
     parser.add_argument('file', type=str, help='Input file (.ckpt or .yaml)')
-    parser.add_argument("--pretrained_model", type=str, help="pretrained model path or enter 0")
+    parser.add_argument("--pretrained_model", type=str, help="pretrained model path or enter None",default="None")
     args = parser.parse_args()
     assert args.file.endswith(('.ckpt', '.yaml')), \
         'You need to provide a .ckpt of .yaml file'
@@ -143,7 +143,7 @@ def main(file,pretrained_model):
         summary = None
 
     # Initial evaluation
-    evaluation(config, 0, model, summary)
+    #evaluation(config, 0, model, summary)
     # Train
     for epoch in range(config.arch.epochs):
         # train for one epoch (only log if eval to have aligned steps...)

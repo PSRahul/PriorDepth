@@ -1,2 +1,4 @@
 __pycache__
-KP2D_Perspective/experiments/
+KP2D/experiments/
+KP2D/kp2d/datasets/HPatches/
+KP2D/kp2d/datasets/val2017/

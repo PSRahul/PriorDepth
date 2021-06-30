@@ -37,11 +37,11 @@ class KP3D_Baseline(nn.Module):
         self.depth_decoder.to(device)
         #self.depth_decoder.eval()
 
-        for param in self.depth_encoder.parameters():
-            param.requires_grad = False
+        #for param in self.depth_encoder.parameters():
+        #    param.requires_grad = False
 
-        for param in self.depth_decoder.parameters():
-            param.requires_grad = False
+        #for param in self.depth_decoder.parameters():
+        #    param.requires_grad = False
                 
         #self.depth_encoder = ResnetEncoder(self.opt.num_layers, self.opt.weights_init == "pretrained")
         #self.depth_decoder = DepthDecoder(self.depth_encoder.num_ch_enc, self.opt.scales)

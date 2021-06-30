@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from matplotlib.cm import get_cmap
+import matplotlib.pyplot as plt
 
 from kp2d.networks.inlier_net import InlierNet
 from kp2d.networks.keypoint_net import KeypointNet
@@ -236,10 +237,20 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
             input_img = data['image']
             input_img_aug = data['image_aug']
+            #print(input_img.shape)
+            plt.figure(200)
+            imgplot1 = plt.imshow(np.moveaxis(input_img[0,:,:,:].detach().cpu().numpy(),0,-1))
+            #plt.show()
+            plt.figure(201)
+            imgplot2 = plt.imshow(np.moveaxis(input_img_aug[0,:,:,:].detach().cpu().numpy(),0,-1))
+            plt.show()
+
             homography = data['homography']
 
             input_img = to_color_normalized(input_img.clone())
             input_img_aug = to_color_normalized(input_img_aug.clone())
+
+            #PIL.ImageShow.show(input_img)
 
             # Get network outputs
             source_score, source_uv_pred, source_feat = self.keypoint_net(input_img_aug)

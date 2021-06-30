@@ -5,7 +5,8 @@
 
 import os
 from yacs.config import CfgNode as CN
-
+from datetime import datetime
+now = datetime.now()
 ########################################################################################################################
 cfg = CN()
 cfg.name = ''       # Run name
@@ -15,7 +16,7 @@ cfg.debug = True   # Debugging flag
 ########################################################################################################################
 cfg.arch = CN()
 cfg.arch.seed = 42                  # Random seed for Pytorch/Numpy initialization
-cfg.arch.epochs = 5 #50                # Maximum number of epochs
+cfg.arch.epochs = 1            # Maximum number of epochs
 ########################################################################################################################
 ### WANDB
 ########################################################################################################################
@@ -30,7 +31,7 @@ cfg.wandb.dir = ''                                       # Wandb save folder
 ### MODEL
 ########################################################################################################################
 cfg.model = CN()
-cfg.model.checkpoint_path = 'experiments/kp2d/'              # Checkpoint path for model saving
+cfg.model.checkpoint_path = 'experiments/kp2d/' +now.strftime("%H%M%S")            # Checkpoint path for model saving
 cfg.model.save_checkpoint = True
 ########################################################################################################################
 ### MODEL.SCHEDULER
@@ -65,21 +66,21 @@ cfg.datasets = CN()
 ### DATASETS.AUGMENTATION
 ########################################################################################################################
 cfg.datasets.augmentation = CN()
-cfg.datasets.augmentation.image_shape = (240, 320)              # Image shape
+cfg.datasets.augmentation.image_shape = (240, 320)#(240, 320)              # Image shape
 cfg.datasets.augmentation.jittering = (0.5, 0.5, 0.2, 0.05)     # Color jittering values
 ########################################################################################################################
 ### DATASETS.TRAIN
 ########################################################################################################################
 cfg.datasets.train = CN()
-cfg.datasets.train.batch_size = 8                                      # Training batch size
-cfg.datasets.train.num_workers = 4                                    # Training number of workers
-cfg.datasets.train.path = '/home/ubuntu/PriorDepth/datasets/coco/train2017'        # Training data path (COCO dataset)
+cfg.datasets.train.batch_size = 2 #8                                      # Training batch size
+cfg.datasets.train.num_workers = 4                                   # Training number of workers
+cfg.datasets.train.path = '/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/Prior_Depth_Phase2/datasets/val2017'  #train2017/'             # Training data path (COCO dataset)
 cfg.datasets.train.repeat = 1                                          # Number of times training dataset is repeated per epoch
 ########################################################################################################################
 ### DATASETS.VAL
 ########################################################################################################################
 cfg.datasets.val = CN()
-cfg.datasets.val.path = '/home/ubuntu/PriorDepth/datasets/hpatches/HPatches'     # Validation data path (HPatches)
+cfg.datasets.val.path = '/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/Prior_Depth_Phase2/datasets/HPatches'     # Validation data path (HPatches)
 ########################################################################################################################
 ### THESE SHOULD NOT BE CHANGED
 ########################################################################################################################
