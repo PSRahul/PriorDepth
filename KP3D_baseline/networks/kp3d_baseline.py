@@ -4,7 +4,6 @@ from .resnet_encoder import ResnetEncoder
 from .depth_decoder import DepthDecoder
 from .pose_estimation import PoseEstimation
 from .keypoint_net import KeypointNet
-from .kp2d_losses import *
 from  datasets.kp2d_augmentations import *
 import torch
 import os
@@ -122,6 +121,17 @@ class KP3D_Baseline(nn.Module):
 
 
         kp2d_output1 = self.keypoint_net(input_image["color_aug", 0, 0])
+        if self.opt.kp_training:
+            source_score, source_uv_pred, source_feat=self.keypoint_net(input_image["color_aug_wrapped_kp2d", 0, 0])
+            target_score, target_uv_pred, target_feat=kp2d_output1
+            outputs["source_score"] = source_score
+            outputs["source_uv_pred"] = source_uv_pred
+            outputs["source_feat"] =source_feat
+            outputs["target_score"] = target_score
+            outputs["target_uv_pred"] = target_uv_pred
+            outputs["target_feat"] = target_feat
+
+
         kp2d_output1 = self.batch_reshape_kp2d_preds(kp2d_output1, 1)
 
         kp2d_output2 = self.keypoint_net(input_image["color_aug", 1, 0])
@@ -134,6 +144,9 @@ class KP3D_Baseline(nn.Module):
         outputs.update(kp2d_output2)
         outputs.update(kp2d_output3)
 
+
+
+
         R_t1, t_t1 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", 1, 0],
                                             kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
                                             kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
@@ -144,9 +157,14 @@ class KP3D_Baseline(nn.Module):
                                             kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
                                             epoch,batch_idx)
 
+
         outputs["R_t1"] = R_t1
         outputs["t_t1"] = t_t1
         outputs["R_t2"] = R_t2
         outputs["t_t2"] = t_t2
+
+
+
+
 
         return outputs

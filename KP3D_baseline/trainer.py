@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 
 from  datasets.kp2d_augmentations import *
 from networks.kp3d_baseline import KP3D_Baseline
+from loss.kp2d_2dwarp_losses import *
+
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 import torch.nn.functional as F
@@ -168,9 +170,11 @@ class Trainer:
         for key, ipt in inputs.items():
             inputs[key] = ipt.to(self.device)
         #print("input keys",inputs.keys()) 
-        inputs=self.preprocess_kp2d_batch(inputs)   
+        if self.opt.kp_training:
+            inputs=self.preprocess_kp2d_batch(inputs)   
         #print("input keys",inputs.keys()) 
         outputs = self.model(inputs,self.epoch,batch_idx)
+        #print(outputs.keys())
         self.generate_images_pred(inputs, outputs)
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
@@ -199,6 +203,12 @@ class Trainer:
     def compute_losses(self, inputs, outputs):
         losses = {}
         total_loss = 0
+        loss_2d_warping=0
+        if self.opt.kp_training:
+            loss_2d_warping=calculate_2d_warping_loss(inputs,outputs)
+            total_loss+=loss_2d_warping
+            losses["2d_warping_loss"] = loss_2d_warping
+            #print(loss_2d_warping)
 
         for scale in self.opt.scales:
             loss = 0
