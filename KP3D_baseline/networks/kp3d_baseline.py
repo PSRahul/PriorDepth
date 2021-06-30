@@ -4,6 +4,7 @@ from .resnet_encoder import ResnetEncoder
 from .depth_decoder import DepthDecoder
 from .pose_estimation import PoseEstimation
 from .keypoint_net import KeypointNet
+from .kp2d_losses import *
 from  datasets.kp2d_augmentations import *
 import torch
 import os
@@ -108,15 +109,16 @@ class KP3D_Baseline(nn.Module):
         #print(input_image["color_aug", 1, 0].shape)
         #print(input_image["color_aug", -1, 0].shape)
 
-        target_img,source_img,homography=ha_augment_sample(input_image["color_aug", 0, 0][0,:,:,:])
+        #target_img,source_img,homography=ha_augment_sample(input_image["color_aug", 0, 0][0,:,:,:])
         #print("Target Shape",target_img.shape)  
         #print("Souce Shape",source_img.shape)
         #print("Homography Shape",homography.shape)
 
 
-        plt.imsave("target_img.png",target_img.permute(1,2,0).detach().cpu().numpy())
-        plt.imsave("source_img.png",source_img.permute(1,2,0).detach().cpu().numpy())
-        plt.imsave("input.png",input_image["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("target_img.png",target_img.permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("source_img.png",source_img.permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input.png",input_image["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input_wrapped.png",input_image["color_aug_wrapped_kp2d", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
 
 
         kp2d_output1 = self.keypoint_net(input_image["color_aug", 0, 0])

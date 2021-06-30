@@ -344,12 +344,12 @@ def ha_augment_sample(data, jitter_paramters=[0.5, 0.5, 0.2, 0.05], patch_ratio=
     source_img = torch.nn.functional.grid_sample(target_img, source_warped, align_corners=True)
 
     color_order = [0,1,2]
-    if np.random.rand() > 0.5:
-        random.shuffle(color_order)
+    #if np.random.rand() > 0.5:
+    #    random.shuffle(color_order)
 
     to_gray = False
-    if np.random.rand() > 0.5:
-        to_gray = True
+    #if np.random.rand() > 0.5:
+    #    to_gray = True
 
     target_img = non_spatial_augmentation(target_img, jitter_paramters=jitter_paramters, color_order=color_order, to_gray=to_gray)
     source_img = non_spatial_augmentation(source_img, jitter_paramters=jitter_paramters, color_order=color_order, to_gray=to_gray)

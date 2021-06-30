@@ -4,6 +4,7 @@ import torch
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
+from  datasets.kp2d_augmentations import *
 from networks.kp3d_baseline import KP3D_Baseline
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
@@ -149,9 +150,26 @@ class Trainer:
                 self.val()
             self.step += 1
 
+
+    def preprocess_kp2d_batch(self,inputs):
+        #print(inputs[('color_aug', 0, 0)].shape)
+        image_inputs_kp2d=inputs[('color_aug', 0, 0)]
+        image_inputs_kp2d_wrapped=torch.zeros_like(image_inputs_kp2d)
+        homography=torch.zeros((self.opt.batch_size,3,3))
+        for i in range(self.opt.batch_size):
+            #print(image_inputs_kp2d[i,:,:,:].shape)
+            _,image_inputs_kp2d_wrapped[i,:,:,:],homography[i,:,:]=ha_augment_sample(image_inputs_kp2d[i,:,:,:])
+        inputs[('color_aug_wrapped_kp2d', 0, 0)]= image_inputs_kp2d_wrapped
+        inputs[('homography', 0, 0)]=homography
+        return inputs
+
+
     def process_batch(self, inputs,batch_idx):
         for key, ipt in inputs.items():
             inputs[key] = ipt.to(self.device)
+        #print("input keys",inputs.keys()) 
+        inputs=self.preprocess_kp2d_batch(inputs)   
+        #print("input keys",inputs.keys()) 
         outputs = self.model(inputs,self.epoch,batch_idx)
         self.generate_images_pred(inputs, outputs)
         losses = self.compute_losses(inputs, outputs)
