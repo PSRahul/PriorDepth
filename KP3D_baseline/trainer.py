@@ -154,29 +154,6 @@ class Trainer:
             inputs[key] = ipt.to(self.device)
         outputs = self.model(inputs,self.epoch,batch_idx)
         self.generate_images_pred(inputs, outputs)
-        for key,values in outputs.items():
-            print(key)
-        for key,values in inputs.items():
-            print(key)
-        #inputs_kp2d,outputs_kp2d=self.warp_for_kp2d(inputs,outputs)
-        #print("KP2D Shapes")
-        #print(inputs_kp2d[('color_aug', 0)].shape)
-        #print(inputs_kp2d[('color_aug', -1)].shape)
-        #print(inputs_kp2d[('color_aug', 1)].shape)
-        #plt.plot(outputs[('color', -1, 0)][0,:,:,:].permute(1,2,0))
-        print(outputs[('sample', -1, 0)].shape)
-        plt.imsave("output_color.png",outputs[('color', -1, 0)][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        plt.imsave("input_color.png",inputs[('color', -1, 0)][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        plt.imsave("input_color_aug.png",inputs[('color_aug', -1, 0)][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-
-        #print(inputs[('color_aug', 0, 0)][0,:,:,:].permute(1,2,0).shape)
-        #print(inputs[('color_aug', -1, 0)][0,:,:,:].permute(1,2,0).shape)
-        #print(inputs[('color_aug', 1, 0)][0,:,:,:].permute(1,2,0).shape)
-        
-        #print(inputs[('color', 0, 0)][0,:,:,:].permute(1,2,0).shape)
-        #print(inputs[('color', -1, 0)][0,:,:,:].permute(1,2,0).shape)
-        #print(inputs[('color', 1, 0)][0,:,:,:].permute(1,2,0).shape)
-
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
 
@@ -475,27 +452,4 @@ class Trainer:
                     outputs[("color_identity", frame_id, scale)] = \
                         inputs[("color", frame_id, source_scale)]
         return outputs
-
-    def warp_for_kp2d(self, inputs,outputs):
-        inputs_kp2d={}
-        outputs_kp2d={}
-
-        inputs_kp2d[('color_aug', 0)]=inputs[('color_aug', 0, 0)]
-        inputs_kp2d[('color_aug', -1)]=inputs[('color_aug', -1, 0)]
-        inputs_kp2d[('color_aug', 1)]=inputs[('color_aug', 1, 0)]
-        T = torch.zeros((1, 4, 4)).to(self.device)
-        src_images = torch.zeros((1,inputs_kp2d[('color_aug', 0)].shape[1],inputs_kp2d[('color_aug', 0)].shape[2],inputs_kp2d[('color_aug', 0)].shape[3])).to(self.device)
-        print("Images Shape",src_images.shape)
-        print("T Shape",T.shape)
-        print(outputs['R_t1'])
-        print(outputs['t_t1'])
-        T[0, :3, :3] = outputs['R_t1']
-        T[0, :3, 3] = outputs['t_t1'].transpose(1, 2)[:, 0, :]
-        T[0, 3, 3] = 1
-        print(T)
-
-        #print(T.shape)        
-        
-        #warp_perspective3d(src_images,T,
-        return inputs_kp2d,outputs_kp2d
 

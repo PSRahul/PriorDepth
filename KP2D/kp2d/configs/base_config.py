@@ -53,7 +53,7 @@ cfg.model.params.keypoint_loss_weight = 1.0                 # Keypoint loss weig
 cfg.model.params.descriptor_loss_weight = 1.0               # Descriptor loss weight
 cfg.model.params.score_loss_weight = 1.0                    # Score loss weight
 cfg.model.params.use_color = True                           # Use color or grayscale images
-cfg.model.params.with_io = False                            # Use IONet
+cfg.model.params.with_io = True                           # Use IONet
 cfg.model.params.do_upsample = True                         # Upsample descriptors
 cfg.model.params.do_cross = True                            # Use cross-border keypoints
 cfg.model.params.descriptor_loss = True                     # Use hardest negative mining descriptor loss
@@ -72,7 +72,7 @@ cfg.datasets.augmentation.jittering = (0.5, 0.5, 0.2, 0.05)     # Color jitterin
 ### DATASETS.TRAIN
 ########################################################################################################################
 cfg.datasets.train = CN()
-cfg.datasets.train.batch_size = 1 #8                                      # Training batch size
+cfg.datasets.train.batch_size = 2 #8                                      # Training batch size
 cfg.datasets.train.num_workers = 4                                   # Training number of workers
 cfg.datasets.train.path = "/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/Prior_Depth_Phase2/datasets/val3/"  #train2017/'             # Training data path (COCO dataset)
 cfg.datasets.train.repeat = 1                                          # Number of times training dataset is repeated per epoch

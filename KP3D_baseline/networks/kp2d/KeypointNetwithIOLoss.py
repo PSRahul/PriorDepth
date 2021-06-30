@@ -237,14 +237,13 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
             input_img = data['image']
             input_img_aug = data['image_aug']
-            print("Input Image",input_img.shape)
-            print("Aug. Input Image",input_img_aug.shape)
-            #plt.figure(200)
-            #imgplot1 = plt.imshow(np.moveaxis(input_img[0,:,:,:].detach().cpu().numpy(),0,-1))
+            #print(input_img.shape)
+            plt.figure(200)
+            imgplot1 = plt.imshow(np.moveaxis(input_img[0,:,:,:].detach().cpu().numpy(),0,-1))
             #plt.show()
-            #plt.figure(201)
-            #imgplot2 = plt.imshow(np.moveaxis(input_img_aug[0,:,:,:].detach().cpu().numpy(),0,-1))
-            #plt.show()
+            plt.figure(201)
+            imgplot2 = plt.imshow(np.moveaxis(input_img_aug[0,:,:,:].detach().cpu().numpy(),0,-1))
+            plt.show()
 
             homography = data['homography']
 

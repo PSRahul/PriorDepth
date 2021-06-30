@@ -324,9 +324,7 @@ def non_spatial_augmentation(img_warp_ori, jitter_paramters, color_order=[0,1,2]
 
 def ha_augment_sample(data, jitter_paramters=[0.5, 0.5, 0.2, 0.05], patch_ratio=0.7, scaling_amplitude=0.2, max_angle=pi/4):
     """Apply Homography Adaptation image augmentation."""
-    print("Function Input Image",data['image'].shape)
     target_img = data['image'].unsqueeze(0)
-    print("Function Input Image",target_img.shape)
     _, _, H, W = target_img.shape
     device = target_img.device
 
@@ -359,8 +357,6 @@ def ha_augment_sample(data, jitter_paramters=[0.5, 0.5, 0.2, 0.05], patch_ratio=
     
 
     data['image'] = target_img.squeeze()
-    print("Function End Input Image",data['image'].shape)
     data['image_aug'] = source_img.squeeze()
-    print("Function End Input Image",data['image'].shape)
     data['homography'] = homography
     return data

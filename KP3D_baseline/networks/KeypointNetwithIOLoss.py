@@ -162,7 +162,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
     """
     def __init__(
         self, keypoint_loss_weight=1.0, descriptor_loss_weight=2.0, score_loss_weight=1.0, 
-        keypoint_net_learning_rate=0.001, with_io=True, use_color=True, do_upsample=True, 
+        keypoint_net_learning_rate=0.001, with_io=False, use_color=True, do_upsample=True, 
         do_cross=True, descriptor_loss=True, with_drop=True, keypoint_net_type='KeypointNet', **kwargs):
 
         super().__init__()
@@ -182,12 +182,7 @@ class KeypointNetwithIOLoss(torch.nn.Module):
         self.descriptor_loss = descriptor_loss
 
         # Initialize KeypointNet
-        if keypoint_net_type == 'KeypointNet':
-            self.keypoint_net = KeypointNet(use_color=use_color, do_upsample=do_upsample, with_drop=with_drop, do_cross=do_cross)
-        elif keypoint_net_type == 'KeypointResnet':
-            self.keypoint_net = KeypointResnet(with_drop=with_drop)
-        else:
-            raise NotImplemented('Keypoint net type not supported {}'.format(keypoint_net_type))
+        self.keypoint_net = KeypointNet(use_color=use_color, do_upsample=do_upsample, with_drop=with_drop, do_cross=do_cross)
         self.keypoint_net = self.keypoint_net.cuda()
         self.add_optimizer_params('KeypointNet', self.keypoint_net.parameters(), keypoint_net_learning_rate)
 
@@ -237,14 +232,13 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
             input_img = data['image']
             input_img_aug = data['image_aug']
-            print("Input Image",input_img.shape)
-            print("Aug. Input Image",input_img_aug.shape)
-            #plt.figure(200)
-            #imgplot1 = plt.imshow(np.moveaxis(input_img[0,:,:,:].detach().cpu().numpy(),0,-1))
+            #print(input_img.shape)
+            plt.figure(200)
+            imgplot1 = plt.imshow(np.moveaxis(input_img[0,:,:,:].detach().cpu().numpy(),0,-1))
             #plt.show()
-            #plt.figure(201)
-            #imgplot2 = plt.imshow(np.moveaxis(input_img_aug[0,:,:,:].detach().cpu().numpy(),0,-1))
-            #plt.show()
+            plt.figure(201)
+            imgplot2 = plt.imshow(np.moveaxis(input_img_aug[0,:,:,:].detach().cpu().numpy(),0,-1))
+            plt.show()
 
             homography = data['homography']
 
@@ -326,81 +320,4 @@ class KeypointNetwithIOLoss(torch.nn.Module):
 
             loss_2d += self.score_loss_weight * torch.nn.functional.mse_loss(target_score_resampled[border_mask.unsqueeze(1)],
                                                                                 source_score[border_mask.unsqueeze(1)]).mean() * 2
-            if self.with_io:
-                # Compute IO loss
-                top_k_score1, top_k_indice1 = source_score.view(B,Hc*Wc).topk(self.top_k2, dim=1, largest=False)
-                top_k_mask1 = torch.zeros(B, Hc * Wc).to(device)
-                top_k_mask1.scatter_(1, top_k_indice1, value=1)
-                top_k_mask1 = top_k_mask1.gt(1e-3).view(B,Hc,Wc)
-
-                top_k_score2, top_k_indice2 = target_score.view(B,Hc*Wc).topk(self.top_k2, dim=1, largest=False)
-                top_k_mask2 = torch.zeros(B, Hc * Wc).to(device)
-                top_k_mask2.scatter_(1, top_k_indice2, value=1)
-                top_k_mask2 = top_k_mask2.gt(1e-3).view(B,Hc,Wc)
-
-                source_uv_norm_topk = source_uv_norm[top_k_mask1].view(B, self.top_k2, 2)
-                target_uv_norm_topk = target_uv_norm[top_k_mask2].view(B, self.top_k2, 2)
-                source_uv_warped_norm_topk = source_uv_warped_norm[top_k_mask1].view(B, self.top_k2, 2)
-
-                source_feat_topk = torch.nn.functional.grid_sample(source_feat, source_uv_norm_topk.unsqueeze(1), align_corners=True).squeeze()
-                target_feat_topk = torch.nn.functional.grid_sample(target_feat, target_uv_norm_topk.unsqueeze(1), align_corners=True).squeeze()
-
-                source_feat_topk = source_feat_topk.div(torch.norm(source_feat_topk, p=2, dim=1).unsqueeze(1))
-                target_feat_topk = target_feat_topk.div(torch.norm(target_feat_topk, p=2, dim=1).unsqueeze(1))
-
-                dmat = torch.bmm(source_feat_topk.permute(0,2,1), target_feat_topk)
-                dmat = torch.sqrt(2 - 2 * torch.clamp(dmat, min=-1, max=1))
-                dmat_soft_min = torch.sum(dmat* dmat.mul(-1).softmax(dim=2), dim=2)
-                dmat_min, dmat_min_indice = torch.min(dmat, dim=2)
-
-                target_uv_norm_topk_associated = target_uv_norm_topk.gather(1, dmat_min_indice.unsqueeze(2).repeat(1,1,2))
-                point_pair = torch.cat([source_uv_norm_topk, target_uv_norm_topk_associated, dmat_min.unsqueeze(2)], 2)
-
-                inlier_pred = self.io_net(point_pair.permute(0,2,1).unsqueeze(3)).squeeze()
-
-                target_uv_norm_topk_associated_raw = target_uv_norm_topk_associated.clone()
-                target_uv_norm_topk_associated_raw[:,:,0] = (target_uv_norm_topk_associated_raw[:,:,0] + 1) * (float(W-1)/2.)
-                target_uv_norm_topk_associated_raw[:,:,1] = (target_uv_norm_topk_associated_raw[:,:,1] + 1) * (float(H-1)/2.)
-
-                source_uv_warped_norm_topk_raw = source_uv_warped_norm_topk.clone()
-                source_uv_warped_norm_topk_raw[:,:,0] = (source_uv_warped_norm_topk_raw[:,:,0] + 1) * (float(W-1)/2.)
-                source_uv_warped_norm_topk_raw[:,:,1] = (source_uv_warped_norm_topk_raw[:,:,1] + 1) * (float(H-1)/2.)
-
-
-                matching_score = torch.norm(target_uv_norm_topk_associated_raw - source_uv_warped_norm_topk_raw, p=2, dim=2)
-                inlier_mask = matching_score.lt(4)
-                inlier_gt = 2 * inlier_mask.float() - 1
-
-                if inlier_mask.sum() > 10:
-
-                    io_loss = torch.nn.functional.mse_loss(inlier_pred, inlier_gt)
-                    loss_2d += self.keypoint_loss_weight * io_loss
-
-
-            if debug and torch.cuda.current_device() == 0:
-                # Generate visualization data
-                vis_ori = (input_img[0].permute(1, 2, 0).detach().cpu().clone().squeeze() )
-                vis_ori -= vis_ori.min()
-                vis_ori /= vis_ori.max()
-                vis_ori = (vis_ori* 255).numpy().astype(np.uint8)
-
-                if self.use_color is False:
-                    vis_ori = cv2.cvtColor(vis_ori, cv2.COLOR_GRAY2BGR)
-
-                _, top_k = target_score.view(B,-1).topk(self.top_k2, dim=1) #JT: Target frame keypoints
-                vis_ori = draw_keypoints(vis_ori, target_uv_pred.view(B,2,-1)[:,:,top_k[0].squeeze()],(0,0,255))
-
-                _, top_k = source_score.view(B,-1).topk(self.top_k2, dim=1) #JT: Warped Source frame keypoints
-                vis_ori = draw_keypoints(vis_ori, source_uv_warped.view(B,2,-1)[:,:,top_k[0].squeeze()],(255,0,255))
-
-                cm = get_cmap('plasma')
-                heatmap = target_score[0].detach().cpu().clone().numpy().squeeze()
-                heatmap -= heatmap.min()
-                heatmap /= heatmap.max()
-                heatmap = cv2.resize(heatmap, (W, H))
-                heatmap = cm(heatmap)[:, :, :3]
-
-                self.vis['img_ori'] = np.clip(vis_ori, 0, 255) / 255.
-                self.vis['heatmap'] = np.clip(heatmap * 255, 0, 255) / 255.
-
         return loss_2d, recall_2d
