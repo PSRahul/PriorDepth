@@ -170,7 +170,7 @@ class Trainer:
         for key, ipt in inputs.items():
             inputs[key] = ipt.to(self.device)
         #print("input keys",inputs.keys()) 
-        if self.opt.kp_training:
+        if self.opt.kp_training_2dwarp:
             inputs=self.preprocess_kp2d_batch(inputs)   
         #print("input keys",inputs.keys()) 
         outputs = self.model(inputs,self.epoch,batch_idx)
@@ -204,7 +204,7 @@ class Trainer:
         losses = {}
         total_loss = 0
         loss_2d_warping=0
-        if self.opt.kp_training:
+        if self.opt.kp_training_2dwarp:
             loss_2d_warping=calculate_2d_warping_loss(inputs,outputs)
             total_loss+=loss_2d_warping
             losses["2d_warping_loss"] = loss_2d_warping

@@ -121,7 +121,7 @@ class KP3D_Baseline(nn.Module):
 
 
         kp2d_output1 = self.keypoint_net(input_image["color_aug", 0, 0])
-        if self.opt.kp_training:
+        if self.opt.kp_training_2dwarp:
             source_score, source_uv_pred, source_feat=self.keypoint_net(input_image["color_aug_wrapped_kp2d", 0, 0])
             target_score, target_uv_pred, target_feat=kp2d_output1
             outputs["source_score"] = source_score

@@ -117,7 +117,7 @@ class KP3DOptions:
                                  help="Set to 1 to visualise images",
                                  default=0)
 
-        self.parser.add_argument("--kp_training",
+        self.parser.add_argument("--kp_training_2dwarp",
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
