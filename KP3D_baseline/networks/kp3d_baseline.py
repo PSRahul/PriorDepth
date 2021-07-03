@@ -3,15 +3,16 @@ from .resnet_encoder import ResnetEncoder
 from .depth_decoder import DepthDecoder
 from .pose_estimation import PoseEstimation
 from .keypoint_net import KeypointNet
+from layers import *
 import torch
 import os
 
 
 class KP3D_Baseline(nn.Module):
-    def __init__(self, options, K1, K2,epoch,batch_idx):
+    def __init__(self, options, K1, K2, epoch, batch_idx):
         super(KP3D_Baseline, self).__init__()
         self.opt = options
-
+        self.use_pnp = self.opt.use_pnp
         if torch.cuda.is_available() and not self.opt.no_cuda:
             device = torch.device("cuda")
         else:
@@ -130,15 +131,29 @@ class KP3D_Baseline(nn.Module):
         outputs.update(kp2d_output2)
         outputs.update(kp2d_output3)
 
-        R_t1, t_t1 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", 1, 0],
-                                            kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
-                                            kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
-                                            epoch,batch_idx)
+        if self.use_pnp:
+            _, depth = disp_to_depth(disp_outputs[("disp", 0)], self.opt.min_depth, self.opt.max_depth)
 
-        R_t2, t_t2 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", -1, 0],
-                                            kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
-                                            kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
-                                            epoch,batch_idx)
+            R_t1, t_t1 = self.pose_estimator.get_pose_pnp(disp_outputs[("disp", 0)], input_image["color_aug", 0, 0], input_image["color_aug", 1, 0],
+                                                      kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
+                                                      kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
+                                                      epoch, batch_idx)
+            R_t2, t_t2 = self.pose_estimator.get_pose_pnp(disp_outputs[("disp", 0)], input_image["color_aug", 0, 0], input_image["color_aug", -1, 0],
+                                                      kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
+                                                      kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
+                                                      epoch, batch_idx)
+            t_t1 = torch.unsqueeze(t_t1, dim=2)
+            t_t2 = torch.unsqueeze(t_t2, dim=2)
+        else:
+            R_t1, t_t1 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", 1, 0],
+                                                kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
+                                                kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
+                                                epoch,batch_idx)
+
+            R_t2, t_t2 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", -1, 0],
+                                                kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
+                                                kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
+                                                epoch,batch_idx)
 
         outputs["R_t1"] = R_t1
         outputs["t_t1"] = t_t1
