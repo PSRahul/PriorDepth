@@ -3,7 +3,7 @@ import kornia
 from matplotlib.patches import ConnectionPatch
 import matplotlib.pyplot as plt
 import numpy as np
-
+from pytorch3d.ops import perspective_n_points
 
 class PoseEstimation:
     def __init__(self, K1, K2, cuda,log_dir,visualise_images):
@@ -14,10 +14,28 @@ class PoseEstimation:
         self.log_dir=log_dir
         self.visualise_images=visualise_images
 
+    def good_matches(self, match_dist, match_idx, threshold=150):
+        good_matches = []
+        good_match_idx = []
+        len_matches = match_dist.shape[0]
+        for i in range(len_matches):
+            dist = match_dist[i]
+            if dist < threshold:
+                good_matches.append(dist)
+                good_match_idx.append(match_idx[i].cpu().numpy())
+
+        good_matches = torch.tensor(good_matches).to(self.device)
+        good_match_idx = torch.tensor(good_match_idx).to(self.device)
+
+        return good_matches, good_match_idx
+
     def match_keypoints(self, kp1, kp2, des1, des2):
         match_dist, match_idx = kornia.feature.match_mnn(des1, des2)
+        match_dist, match_idx = self.good_matches(match_dist, match_idx)
+
         match_kp1 = kp1[match_idx[:, 0]]
         match_kp2 = kp2[match_idx[:, 1]]
+
         match_kp1 = torch.unsqueeze(match_kp1, dim=0)
         match_kp2 = torch.unsqueeze(match_kp2, dim=0)
         return match_kp1, match_kp2
@@ -82,3 +100,45 @@ class PoseEstimation:
             plt.close('all')
         return outputs_R, outputs_t
 
+    def reproject_points(self, depth_img, kp):
+        rounded_kp = np.array(np.round(kp[0].cpu())).astype(int)
+        depth_vals = depth_img[0, rounded_kp[:, 1], rounded_kp[:, 0]]
+        #mask = np.where(depth_vals.cpu() > 0)[0]
+
+        #kp = kp[0, mask, :]
+        #depth_vals = depth_vals[mask]
+        kp=kp[0]
+        depth_vals2 = torch.stack((depth_vals, depth_vals), dim=1)
+        c_x_y = torch.Tensor([self.K1[0, 0, 2], self.K1[0, 1, 2]]).to(self.device)
+        f_x_Y = torch.Tensor([self.K1[0, 0, 0], self.K1[0, 1, 1]]).to(self.device)
+        kp3d = (kp - c_x_y) * depth_vals2 / f_x_Y
+        kp3d = torch.cat((kp3d, torch.unsqueeze(depth_vals, dim=1)), dim=1)
+        return torch.unsqueeze(kp3d, dim=0)
+
+    def get_pose_pnp(self, depth_img, input_image_1, input_image_2, kp1, kp2, des1, des2,epoch, batch_idx):
+        outputs_R = torch.tensor([]).to(self.device)
+        outputs_t = torch.tensor([]).to(self.device)
+        batch_size = kp1.shape[0]
+        for i in range(kp1.shape[0]):
+            curr_kp1 = kp1[i, :, :]
+            curr_kp2 = kp2[i, :, :]
+            curr_des1 = des1[i, :, :]
+            curr_des2 = des2[i, :, :]
+            curr_depth = depth_img[i, :, :, :]
+            match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2)
+
+            kp3d = self.reproject_points(curr_depth, match_kp1)
+            output = perspective_n_points.efficient_pnp(kp3d, match_kp1)
+
+            R = output[1]
+            t = output[2]
+            outputs_R = torch.cat((outputs_R, R), dim=0)
+            outputs_t = torch.cat((outputs_t, t), dim=0)
+
+        if (self.visualise_images):
+            if (batch_idx % 250 == 0):
+                with torch.no_grad():
+                    self.visualise_matches(input_image_1, input_image_2, match_kp1[0, :, :].cpu(),
+                                           match_kp2[0, :, :].cpu(), epoch, batch_idx, batch_size)
+            plt.close('all')
+        return outputs_R, outputs_t
