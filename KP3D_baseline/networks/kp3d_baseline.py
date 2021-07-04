@@ -1,4 +1,5 @@
 import torch.nn as nn
+import matplotlib.pyplot as plt
 from .resnet_encoder import ResnetEncoder
 from .depth_decoder import DepthDecoder
 from .pose_estimation import PoseEstimation
@@ -37,12 +38,7 @@ class KP3D_Baseline(nn.Module):
         self.depth_decoder.load_state_dict(loaded_dict)
         self.depth_decoder.to(device)
         #self.depth_decoder.eval()
-
-        #self.depth_encoder = ResnetEncoder(self.opt.num_layers, self.opt.weights_init == "pretrained")
-        #self.depth_decoder = DepthDecoder(self.depth_encoder.num_ch_enc, self.opt.scales)
-        
-        # self.keypoint_encoder = KeypointEncoder(self.opt.weights_init == "pretrained", self.opt.with_drop)
-        # self.keypoint_decoder = KeypointDecoder()
+   
         self.keypoint_net = KeypointNet()
         
         if (self.opt.kp2d_initial_ckpt!="None"):
@@ -53,30 +49,20 @@ class KP3D_Baseline(nn.Module):
         for param in self.keypoint_net.parameters():
             param.requires_grad = False    
 
+        
+        #for param in self.depth_encoder.parameters():
+        #    param.requires_grad = False
+
+        #for param in self.depth_decoder.parameters():
+        #    param.requires_grad = False    
+
         if not os.path.exists(self.opt.log_dir+"/keypoint_vis"):
             os.makedirs(self.opt.log_dir+"/keypoint_vis")
         
         self.pose_estimator = PoseEstimation(K1, K2, self.opt.no_cuda,self.opt.log_dir,self.opt.visualise_images)
         ## TODO: // add K1 and K2 to options! or check whether K is correct in trainer.py line 36
 
-    # def reshape_kp2d_preds(self, kp_output, i):
-    #     score, coord, feat = kp_output[0], kp_output[1], kp_output[2]
-    #     # Score map (B, 1, H_out, W_out)
-    #     # Keypoint coordinates (B, 2, H_out, W_out)
-    #     # Keypoint descriptors (B, 256, H_out, W_out)
-    #
-    #     mask = score[:, 0, :, :] > 0.7
-    #     coord_mask = torch.stack((mask, mask), dim=1)
-    #     desc_mask = torch.stack(256*[mask], dim=1)
-    #
-    #     coord = coord[coord_mask]
-    #     coord = coord.reshape((2, coord.shape[0] // 2))
-    #
-    #     feat = feat[desc_mask]
-    #     feat = feat.reshape((256, feat.shape[0] // 256))
-    #
-    #     return {'kp{}_score'.format(i): score, 'kp{}_coord'.format(i): coord, 'kp{}_feat'.format(i):  feat}
-
+   
     def batch_reshape_kp2d_preds(self, kp2d_output, j, threshold=0.3):
         score, coord, feat = kp2d_output
         org_shape=score.shape
@@ -118,7 +104,34 @@ class KP3D_Baseline(nn.Module):
         disp_outputs = self.depth_decoder(depth_features)
         outputs.update(disp_outputs)
 
+        #print(input_image["color_aug", 0, 0].shape)
+        #print(input_image["color_aug", 1, 0].shape)
+        #print(input_image["color_aug", -1, 0].shape)
+
+        #target_img,source_img,homography=ha_augment_sample(input_image["color_aug", 0, 0][0,:,:,:])
+        #print("Target Shape",target_img.shape)  
+        #print("Souce Shape",source_img.shape)
+        #print("Homography Shape",homography.shape)
+
+
+        #plt.imsave("target_img.png",target_img.permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("source_img.png",source_img.permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input.png",input_image["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input_wrapped.png",input_image["color_aug_wrapped_kp2d", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+
+
         kp2d_output1 = self.keypoint_net(input_image["color_aug", 0, 0])
+        if self.opt.kp_training_2dwarp:
+            source_score, source_uv_pred, source_feat=self.keypoint_net(input_image["color_aug_wrapped_kp2d", 0, 0])
+            target_score, target_uv_pred, target_feat=kp2d_output1
+            outputs["source_score"] = source_score
+            outputs["source_uv_pred"] = source_uv_pred
+            outputs["source_feat"] =source_feat
+            outputs["target_score"] = target_score
+            outputs["target_uv_pred"] = target_uv_pred
+            outputs["target_feat"] = target_feat
+
+
         kp2d_output1 = self.batch_reshape_kp2d_preds(kp2d_output1, 1)
 
         kp2d_output2 = self.keypoint_net(input_image["color_aug", 1, 0])
@@ -155,9 +168,14 @@ class KP3D_Baseline(nn.Module):
                                                 kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
                                                 epoch,batch_idx)
 
+
         outputs["R_t1"] = R_t1
         outputs["t_t1"] = t_t1
         outputs["R_t2"] = R_t2
         outputs["t_t2"] = t_t2
+
+
+
+
 
         return outputs

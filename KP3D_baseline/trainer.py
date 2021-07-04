@@ -2,15 +2,19 @@ import time, json, os
 
 import torch
 import torch.optim as optim
+import matplotlib.pyplot as plt
 
+from  datasets.kp2d_augmentations import *
 from networks.kp3d_baseline import KP3D_Baseline
+from loss.kp2d_2dwarp_losses import *
+
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 import torch.nn.functional as F
 import datasets
 from utils2 import *
 from networks.layers import *
-
+from kornia.geometry.transform import warp_perspective3d
 import test_visualization
 
 class Trainer:
@@ -40,8 +44,8 @@ class Trainer:
                                [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
         #fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
         #fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/splits", self.opt.split, "{}_files.txt")
-        #fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
-        fpath = os.path.join(os.path.dirname(__file__), "datasets/splits", self.opt.split, "{}_files.txt")
+        fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
+        #fpath = os.path.join(os.path.dirname(__file__), "datasets/splits", self.opt.split, "{}_files.txt")
         print("Using KITTI splits in",fpath)
         #fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
         
@@ -148,10 +152,29 @@ class Trainer:
                 self.val()
             self.step += 1
 
+
+    def preprocess_kp2d_batch(self,inputs):
+        #print(inputs[('color_aug', 0, 0)].shape)
+        image_inputs_kp2d=inputs[('color_aug', 0, 0)]
+        image_inputs_kp2d_wrapped=torch.zeros_like(image_inputs_kp2d)
+        homography=torch.zeros((self.opt.batch_size,3,3))
+        for i in range(self.opt.batch_size):
+            #print(image_inputs_kp2d[i,:,:,:].shape)
+            _,image_inputs_kp2d_wrapped[i,:,:,:],homography[i,:,:]=ha_augment_sample(image_inputs_kp2d[i,:,:,:])
+        inputs[('color_aug_wrapped_kp2d', 0, 0)]= image_inputs_kp2d_wrapped
+        inputs[('homography', 0, 0)]=homography
+        return inputs
+
+
     def process_batch(self, inputs,batch_idx):
         for key, ipt in inputs.items():
             inputs[key] = ipt.to(self.device)
+        #print("input keys",inputs.keys()) 
+        if self.opt.kp_training_2dwarp:
+            inputs=self.preprocess_kp2d_batch(inputs)   
+        #print("input keys",inputs.keys()) 
         outputs = self.model(inputs,self.epoch,batch_idx)
+        #print(outputs.keys())
         self.generate_images_pred(inputs, outputs)
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
@@ -180,6 +203,12 @@ class Trainer:
     def compute_losses(self, inputs, outputs):
         losses = {}
         total_loss = 0
+        loss_2d_warping=0
+        if self.opt.kp_training_2dwarp:
+            loss_2d_warping=calculate_2d_warping_loss(inputs,outputs)
+            total_loss+=loss_2d_warping
+            losses["2d_warping_loss"] = loss_2d_warping
+            #print(loss_2d_warping)
 
         for scale in self.opt.scales:
             loss = 0
@@ -444,7 +473,11 @@ class Trainer:
                     outputs[("sample", frame_id, scale)],
                     padding_mode="border")
 
+
+
+
                 if not self.opt.disable_automasking:
                     outputs[("color_identity", frame_id, scale)] = \
                         inputs[("color", frame_id, source_scale)]
         return outputs
+

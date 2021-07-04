@@ -1,0 +1,52 @@
+pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
+pip install -r requirements.txt
+conda install -c anaconda cudatoolkit
+pip install pycuda
+pip install Cython==0.29.10 
+
+
+conda env remove -n kp2d_conda
+
+
+python train_keypoint_net.py kp2d/configs/v4.yaml --pretrained_model model10.ckpt
+
+python eval_keypoint_net.py --pretrained_model kp2d/models/pretrained_models/v4.ckpt --input /media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/Prior_Depth_Phase2/datasets/HPatches
+
+conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=11.0 -c pytorch
+conda install -c conda-forge tensorboard
+conda install -c conda-forge pyparsing pyyaml tensorboard
+
+
+pyparsing
+
+/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/KP2D_Conda/KP2D/kp2d/datasets/coco/train2017
+
+print("Test Printing")
+
+/kp2d/models/pretrained_models/v4.ckpt
+
+
+python eval_keypoint_net.py --pretrained_model kp2d/models/pretrained_models/v4.ckpt --input kp2d/datasets/HPatches
+
+Just a quick update. I am now able to train the KP2D model locally using a conda environment and have also set up the model checkpoints. There are still some issues with tensorboard logging which I will try to fix today as fast as possible.
+
+I am still not able to resolve the logging issues.
+
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+Server
+
+python eval_keypoint_net.py --pretrained_model /home/ubuntu/PriorDepth/KP2D_Conda/KP2D/kp2d/models/pretrained_models/v4.ckpt --input /home/ubuntu/PriorDepth/datasets/hpatches/HPatches
+
+
+source activate pytorch_latest_p37
+python train_keypoint_net.py /home/ubuntu/PriorDepth/KP2D_Conda/KP2D/kp2d/configs/v4.yaml --pretrained_model model10.ckpt
+
+
+evaluate_keypoint_net: 580it [03:11,  3.03it/s]
+Repeatability 0.478
+Localization Error 1.018
+Correctness d1 0.348
+Correctness d3 0.364
+Correctness d5 0.417
+MScore 0.172
+

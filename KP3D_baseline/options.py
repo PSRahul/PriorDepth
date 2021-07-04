@@ -25,15 +25,15 @@ class KP3DOptions:
                                  #default=os.path.join(file_dir,"kitti_data")
                                  #default=os.path.join(file_dir,"../../datasets/kitti_data"))
                                  #default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
-                                 #default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
-                                 default="/home/ubuntu/PriorDepth/datasets/kitti_data/")
+                                 default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
+                                 #default="/home/ubuntu/PriorDepth/datasets/kitti_data/")
 
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
                                  #default=os.path.join(os.path.expanduser("~"), "tmp"))
-                                 default="/home/ubuntu/PriorDepth/KP3D_exp_logs/"+str(date_time))
-                                 #default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_baseline_6/kp3d_logs/"+str(date_time))
+                                 #default="/home/ubuntu/PriorDepth/KP3D_exp_logs/"+str(date_time))
+                                 default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/Prior_Depth_Phase2/kp3d_logs/"+str(date_time))
 
         # TRAINING options
         self.parser.add_argument("--model_name",
@@ -75,6 +75,8 @@ class KP3DOptions:
                                  type=int,
                                  help="scales used in the loss",
                                  default=[0, 1, 2, 3])
+                                 #default=[0,1])
+
         self.parser.add_argument("--min_depth",
                                  type=float,
                                  help="minimum depth",
@@ -115,13 +117,19 @@ class KP3DOptions:
                                  help="Set to 1 to visualise images",
                                  default=0)
 
+        self.parser.add_argument("--kp_training_2dwarp",
+                                 nargs="?",
+                                 type=int,
+                                 help="Set to 0 to disable KP training",
+                                 default=1)
+
         # OPTIMIZATION options
         # TODO: in real training, check batch size but it seems like it should be 12 for md2!
         # note Konstantin: standard batch size for md is 12, correct
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=8) # 8
+                                 default=2) # 8
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
@@ -129,7 +137,7 @@ class KP3DOptions:
         self.parser.add_argument("--num_epochs",
                                  type=int,
                                  help="number of epochs",
-                                 default=8)
+                                 default=1)
         self.parser.add_argument("--scheduler_step_size",
                                  type=int,
                                  help="step size of the scheduler",
