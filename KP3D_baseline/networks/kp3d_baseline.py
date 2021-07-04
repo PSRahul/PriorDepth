@@ -4,6 +4,7 @@ from .resnet_encoder import ResnetEncoder
 from .depth_decoder import DepthDecoder
 from .pose_estimation import PoseEstimation
 from .keypoint_net import KeypointNet
+from  datasets.kp2d_augmentations import *
 from layers import *
 import torch
 import os
