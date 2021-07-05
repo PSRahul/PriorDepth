@@ -123,6 +123,10 @@ class KP3DOptions:
                                  help="Set to 0 to disable KP training",
                                  default=1)
 
+        self.parser.add_argument("--use_pnp",
+                                 help="if set, use pnp",
+                                 action="store_false")
+
         # OPTIMIZATION options
         # TODO: in real training, check batch size but it seems like it should be 12 for md2!
         # note Konstantin: standard batch size for md is 12, correct
