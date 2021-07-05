@@ -4,6 +4,7 @@ from .resnet_encoder import ResnetEncoder
 from .depth_decoder import DepthDecoder
 from .pose_estimation import PoseEstimation
 from .keypoint_net import KeypointNet
+from .keypoint_resnet import KeypointResnet
 from  datasets.kp2d_augmentations import *
 from layers import *
 import torch
@@ -40,7 +41,8 @@ class KP3D_Baseline(nn.Module):
         self.depth_decoder.to(device)
         #self.depth_decoder.eval()
    
-        self.keypoint_net = KeypointNet()
+        #self.keypoint_net =  KeypointResnet()
+        self.keypoint_net =  KeypointNet()
         
         if (self.opt.kp2d_initial_ckpt!="None"):
             print("Using pretrained Model for KP2D",self.opt.kp2d_initial_ckpt)

@@ -25,15 +25,15 @@ class KP3DOptions:
                                  #default=os.path.join(file_dir,"kitti_data")
                                  #default=os.path.join(file_dir,"../../datasets/kitti_data"))
                                  #default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
-                                 default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
-                                 #default="/home/ubuntu/PriorDepth/datasets/kitti_data/")
+                                 #default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
+                                 default="/home/ubuntu/PriorDepth/datasets/kitti_data/")
 
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
                                  #default=os.path.join(os.path.expanduser("~"), "tmp"))
-                                 #default="/home/ubuntu/PriorDepth/KP3D_exp_logs/"+str(date_time))
-                                 default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/Prior_Depth_Phase2/kp3d_logs/"+str(date_time))
+                                 default="/home/ubuntu/PriorDepth/KP3D_exp_logs/"+str(date_time))
+                                 #default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/Prior_Depth_Phase2/kp3d_logs/"+str(date_time))
 
         # TRAINING options
         self.parser.add_argument("--model_name",
@@ -98,6 +98,7 @@ class KP3DOptions:
                                  nargs="?",
                                  type=str,
                                  help="path to the initial KP2D trained checkpoint",
+                                 #default="None")
                                  default="trained_models/model_keypoint2_kitti.ckpt")
                                  #default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline_2/model_keypoint2_kitti.ckpt")
                                  #default="/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/KP3D_baseline/trained_models/model_keypoint2_kitti.ckpt")
@@ -121,11 +122,11 @@ class KP3DOptions:
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
-                                 default=1)
+                                 default=0)
 
         self.parser.add_argument("--use_pnp",
                                  help="if set, use pnp",
-                                 action="store_false")
+                                 action="store_true")
 
         # OPTIMIZATION options
         # TODO: in real training, check batch size but it seems like it should be 12 for md2!
@@ -133,7 +134,7 @@ class KP3DOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=2) # 8
+                                 default=8) # 8
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
@@ -141,11 +142,11 @@ class KP3DOptions:
         self.parser.add_argument("--num_epochs",
                                  type=int,
                                  help="number of epochs",
-                                 default=1)
+                                 default=10)
         self.parser.add_argument("--scheduler_step_size",
                                  type=int,
                                  help="step size of the scheduler",
-                                 default=15)
+                                 default=5)
 
         # ABLATION options
         self.parser.add_argument("--v1_multiscale",

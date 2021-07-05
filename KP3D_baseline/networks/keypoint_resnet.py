@@ -91,11 +91,11 @@ class KeypointDecoder(nn.Module):
             nn.Conv2d(self.num_ch_dec[3], 2, 3))
         # Descriptor
         self.featconv  = nn.Sequential(
-            nn.Conv2d(self.num_ch_dec[1], self.num_ch_dec[1], kernel_size=3, stride=1, padding=1, bias=False), 
-            nn.BatchNorm2d(self.num_ch_dec[1]), 
+            nn.Conv2d(self.num_ch_dec[1], self.num_ch_dec[3], kernel_size=3, stride=1, padding=1, bias=False), 
+            nn.BatchNorm2d(self.num_ch_dec[3]), 
             nn.LeakyReLU(inplace=True),
             nn.ReflectionPad2d(1),
-            nn.Conv2d(self.num_ch_dec[1], self.num_ch_dec[1], 3))
+            nn.Conv2d(self.num_ch_dec[3], self.num_ch_dec[3], 3))
 
     def init_weights(self):
         for m in self.modules():
