@@ -134,13 +134,20 @@ def warp_homography_batch(sources, homographies):
 def calculate_3d_warping_loss(inputs,outputs,flag):
   
     loss_2d = 0
-    B, _, H, W = inputs[('color_aug_wrapped_kp2d', 0, 0)].shape
+    B, _, H, W = inputs[("color_aug", 1, 0)].shape
     device = inputs[('color_aug_wrapped_kp2d', 0, 0)].device
     homography=inputs[('homography', 0, 0)].to(device)
 
-    source_score=outputs["source_score"] 
-    source_uv_pred=outputs["source_uv_pred"] 
-    source_feat=outputs["source_feat"]
+    if(flag==1):
+        source_score=outputs["source_score_next"] 
+        source_uv_pred=outputs["source_uv_pred_next"] 
+        source_feat=outputs["source_feat_next"]
+
+    if(flag==-1):
+        source_score=outputs["source_score_previous"] 
+        source_uv_pred=outputs["source_uv_pred_previous"] 
+        source_feat=outputs["source_feat_previous"]
+    
     target_score=outputs["target_score"] 
     target_uv_pred=outputs["target_uv_pred"]
     target_feat=outputs["target_feat"] 
