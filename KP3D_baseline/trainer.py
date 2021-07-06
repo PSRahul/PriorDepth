@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from  datasets.kp2d_augmentations import *
 from networks.kp3d_baseline import KP3D_Baseline
 from loss.kp2d_2dwarp_losses import *
+from loss.kp2d_3dwarp_losses import *
 
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
@@ -209,6 +210,19 @@ class Trainer:
             total_loss+=loss_2d_warping
             losses["2d_warping_loss"] = loss_2d_warping
             #print(loss_2d_warping)
+
+        if self.opt.kp_training_3dwarp_next:
+            loss_3d_warping_next=calculate_3d_warping_loss(inputs,outputs,flag=1)
+            total_loss+=loss_3d_warping_next
+            losses["loss_3d_warping_next"] = loss_3d_warping_next
+            print(loss_3d_warping_next)
+
+
+        if self.opt.kp_training_3dwarp_previous:
+            loss_3d_warping_previous=calculate_3d_warping_loss(inputs,outputs,flag=-1)
+            total_loss+=loss_3d_warping_previous
+            losses["loss_3d_warping_next"] = loss_3d_warping_previous
+            print(loss_3d_warping_previous)
 
         for scale in self.opt.scales:
             loss = 0

@@ -140,9 +140,23 @@ class KP3D_Baseline(nn.Module):
         kp2d_output1 = self.batch_reshape_kp2d_preds(kp2d_output1, 1)
 
         kp2d_output2 = self.keypoint_net(input_image["color_aug", 1, 0])
+        
+        if self.opt.kp_training_3dwarp_next:
+            source_score, source_uv_pred, source_feat=kp2d_output2
+            outputs["source_score_next"] = source_score
+            outputs["source_uv_pred_next"] = source_uv_pred
+            outputs["source_feat_next"] =source_feat
+        
         kp2d_output2 = self.batch_reshape_kp2d_preds(kp2d_output2, 2)
 
         kp2d_output3 = self.keypoint_net(input_image["color_aug", -1, 0])
+
+        if self.opt.kp_training_3dwarp_previous:
+            source_score, source_uv_pred, source_feat=kp2d_output3
+            outputs["source_score_previous"] = source_score
+            outputs["source_uv_pred_previous"] = source_uv_pred
+            outputs["source_feat_previous"] =source_feat
+        
         kp2d_output3 = self.batch_reshape_kp2d_preds(kp2d_output3, 3)
 
         outputs.update(kp2d_output1)
