@@ -22,25 +22,27 @@ class KP3D_Baseline(nn.Module):
             device = torch.device("cpu")
 
         print("LOADING MONODEPTH2 ENCODER")
-        self.depth_encoder = ResnetEncoder(18, False)
+        self.depth_encoder = ResnetEncoder(18, True)
+        self.depth_decoder = DepthDecoder(self.depth_encoder.num_ch_enc, self.opt.scales)
         #self.opt.weights_init == "pretrained"
         # extract the height and width of image that this model was trained with
+        if self.opt.depth_pretrained:
+            loaded_dict_enc = torch.load(self.opt.depth_encoder, map_location=device)
+            feed_height = loaded_dict_enc['height']
+            feed_width = loaded_dict_enc['width']
+            filtered_dict_enc = {k: v for k, v in loaded_dict_enc.items() if k in self.depth_encoder.state_dict()}
+            self.depth_encoder.load_state_dict(filtered_dict_enc)
+            self.depth_encoder.to(device)
+            #self.depth_encoder.eval()
 
-        loaded_dict_enc = torch.load(self.opt.depth_encoder, map_location=device)   
-        feed_height = loaded_dict_enc['height']
-        feed_width = loaded_dict_enc['width']
-        filtered_dict_enc = {k: v for k, v in loaded_dict_enc.items() if k in self.depth_encoder.state_dict()}
-        self.depth_encoder.load_state_dict(filtered_dict_enc)
-        self.depth_encoder.to(device)
-        #self.depth_encoder.eval()
-
-        print("LOADING MONODEPTH2 DECODER")
-        self.depth_decoder = DepthDecoder(self.depth_encoder.num_ch_enc, self.opt.scales)
-        loaded_dict = torch.load(self.opt.depth_decoder, map_location=device)
-        self.depth_decoder.load_state_dict(loaded_dict)
-        self.depth_decoder.to(device)
-        #self.depth_decoder.eval()
-   
+            print("LOADING MONODEPTH2 DECODER")
+            loaded_dict = torch.load(self.opt.depth_decoder, map_location=device)
+            self.depth_decoder.load_state_dict(loaded_dict)
+            self.depth_decoder.to(device)
+            #self.depth_decoder.eval()
+        else:
+            self.depth_encoder.to(device)
+            self.depth_decoder.to(device)
         #self.keypoint_net =  KeypointResnet()
         self.keypoint_net =  KeypointNet()
         
@@ -150,11 +152,11 @@ class KP3D_Baseline(nn.Module):
         if self.use_pnp:
             _, depth = disp_to_depth(disp_outputs[("disp", 0)], self.opt.min_depth, self.opt.max_depth)
 
-            R_t1, t_t1 = self.pose_estimator.get_pose_pnp(disp_outputs[("disp", 0)], input_image["color_aug", 0, 0], input_image["color_aug", 1, 0],
+            R_t1, t_t1 = self.pose_estimator.get_pose_pnp(depth, input_image["color_aug", 0, 0], input_image["color_aug", 1, 0],
                                                       kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
                                                       kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
                                                       epoch, batch_idx)
-            R_t2, t_t2 = self.pose_estimator.get_pose_pnp(disp_outputs[("disp", 0)], input_image["color_aug", 0, 0], input_image["color_aug", -1, 0],
+            R_t2, t_t2 = self.pose_estimator.get_pose_pnp(depth, input_image["color_aug", 0, 0], input_image["color_aug", -1, 0],
                                                       kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
                                                       kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
                                                       epoch, batch_idx)
@@ -171,14 +173,9 @@ class KP3D_Baseline(nn.Module):
                                                 kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
                                                 epoch,batch_idx)
 
-
         outputs["R_t1"] = R_t1
         outputs["t_t1"] = t_t1
         outputs["R_t2"] = R_t2
         outputs["t_t2"] = t_t2
-
-
-
-
 
         return outputs

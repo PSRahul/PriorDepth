@@ -102,6 +102,9 @@ class KP3DOptions:
                                  default="trained_models/model_keypoint2_kitti.ckpt")
                                  #default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline_2/model_keypoint2_kitti.ckpt")
                                  #default="/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/KP3D_baseline/trained_models/model_keypoint2_kitti.ckpt")
+        self.parser.add_argument("--depth_pretrained",
+                                 help="if set, use pretrained depth network",
+                                 action="store_true")
         self.parser.add_argument("--depth_encoder",
                                  nargs="?",
                                  type=str,
@@ -134,7 +137,7 @@ class KP3DOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=8) # 8
+                                 default=12) # 8
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
