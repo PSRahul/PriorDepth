@@ -120,6 +120,9 @@ class KP3DOptions:
                                  type=int,
                                  help="Set to 1 to visualise images",
                                  default=0)
+        self.parser.add_argument("--epipolar_distance",
+                                 help="if set, use epipolar distance for threshold",
+                                 action="store_true")
 
         self.parser.add_argument("--kp_training_2dwarp",
                                  nargs="?",
