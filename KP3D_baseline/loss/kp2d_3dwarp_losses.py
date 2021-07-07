@@ -119,6 +119,7 @@ def warp_homography_batch(sources, homographies):
     warped_sources: torch.Tensor (B,H,W,C)
         Warped keypoints vector.
     """
+    
     B, H, W, _ = sources.shape
     warped_sources = []
     for b in range(B):
@@ -128,15 +129,31 @@ def warp_homography_batch(sources, homographies):
         source.mul_(1/source[:,2].unsqueeze(1))
         source = source[:,:2].contiguous().view(H,W,2)
         warped_sources.append(source)
+
     return torch.stack(warped_sources, dim=0)
 
+
+def warp_kp_batch(inputs,outputs,flag):
+    pix_coords=outputs[("sample", flag, 0)]
+    if(flag==1):
+        source_uv=outputs["source_uv_pred_next"].permute(0, 2, 3, 1)
+    if(flag==-1):
+        source_uv==outputs["source_uv_pred_previous"].permute(0, 2, 3, 1)
+
+    B, H, W, _ = source_uv.shape
+    source_uv_warped=torch.zeros_like(source_uv)
+    for b in range(B):
+        for i in range(H):
+            for j in range(W):
+                source_uv_warped[b,i,j,:]=pix_coords[b,i,j,:]
+        
+    return source_uv_warped
 
 def calculate_3d_warping_loss(inputs,outputs,flag):
   
     loss_2d = 0
-    B, _, H, W = inputs[("color_aug", 1, 0)].shape
-    device = inputs[('color_aug_wrapped_kp2d', 0, 0)].device
-    homography=inputs[('homography', 0, 0)].to(device)
+    B, _, H, W = inputs[("color_aug", flag, 0)].shape
+    device = inputs[("color_aug", flag, 0)].device
 
     if(flag==1):
         source_score=outputs["source_score_next"] 
@@ -152,8 +169,6 @@ def calculate_3d_warping_loss(inputs,outputs,flag):
     target_uv_pred=outputs["target_uv_pred"]
     target_feat=outputs["target_feat"] 
     _, _, Hc, Wc = target_score.shape
-
-
     target_uv_norm = target_uv_pred.clone()
     target_uv_norm[:,0] = (target_uv_norm[:,0] / (float(W-1)/2.)) - 1.
     target_uv_norm[:,1] = (target_uv_norm[:,1] / (float(H-1)/2.)) - 1.
@@ -163,20 +178,26 @@ def calculate_3d_warping_loss(inputs,outputs,flag):
     source_uv_norm[:,0] = (source_uv_norm[:,0] / (float(W-1)/2.)) - 1.
     source_uv_norm[:,1] = (source_uv_norm[:,1] / (float(H-1)/2.)) - 1.
     source_uv_norm = source_uv_norm.permute(0, 2, 3, 1)
+    source_uv_warped=warp_kp_batch(inputs,outputs,flag)
 
-    source_uv_warped_norm = warp_homography_batch(source_uv_norm, homography)
-    source_uv_warped = source_uv_warped_norm.clone()
-
-    source_uv_warped[:,:,:,0] = (source_uv_warped[:,:,:,0] + 1) * (float(W-1)/2.)
-    source_uv_warped[:,:,:,1] = (source_uv_warped[:,:,:,1] + 1) * (float(H-1)/2.)
     source_uv_warped = source_uv_warped.permute(0, 3, 1, 2)
+    source_uv_warped_norm = source_uv_warped.clone()
+    source_uv_warped_norm[:,0] = (source_uv_warped_norm[:,0] / (float(W-1)/2.)) - 1.
+    source_uv_warped_norm[:,1] = (source_uv_warped_norm[:,1] / (float(H-1)/2.)) - 1.
+    source_uv_warped_norm = source_uv_warped_norm.permute(0, 2, 3, 1)
+    #print("6source_uv_warped_norm",source_uv_warped_norm.shape)
 
+
+    '''
     target_uv_resampled = torch.nn.functional.grid_sample(target_uv_pred, source_uv_warped_norm, mode='nearest', align_corners=True)
-
+    #print("9target_uv_resampled",target_uv_resampled.shape)
     target_uv_resampled_norm = target_uv_resampled.clone()
     target_uv_resampled_norm[:,0] = (target_uv_resampled_norm[:,0] / (float(W-1)/2.)) - 1.
     target_uv_resampled_norm[:,1] = (target_uv_resampled_norm[:,1] / (float(H-1)/2.)) - 1.
     target_uv_resampled_norm = target_uv_resampled_norm.permute(0, 2, 3, 1)
+    print("target_uv_resampled_norm",target_uv_resampled_norm)
+    #print("10target_uv_resampled_norm",target_uv_resampled_norm.shape)
+    '''
 
     # Border mask
     border_mask_ori = torch.ones(B,Hc,Wc)
