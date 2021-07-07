@@ -53,7 +53,7 @@ class KP3D_Baseline(nn.Module):
 
         for param in self.keypoint_net.parameters():
             param.requires_grad = False    
-
+        self.keypoint_net.to(device)
         
         #for param in self.depth_encoder.parameters():
         #    param.requires_grad = False
