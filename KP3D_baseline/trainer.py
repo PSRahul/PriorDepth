@@ -209,7 +209,7 @@ class Trainer:
             loss_2d_warping=calculate_2d_warping_loss(inputs,outputs)
             total_loss+=loss_2d_warping
             losses["2d_warping_loss"] = loss_2d_warping
-            #print(loss_2d_warping)
+            print(loss_2d_warping)
 
         if self.opt.kp_training_3dwarp_next:
             loss_3d_warping_next=calculate_3d_warping_loss(inputs,outputs,flag=1)

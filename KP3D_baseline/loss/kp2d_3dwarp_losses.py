@@ -219,12 +219,14 @@ def calculate_3d_warping_loss(inputs,outputs,flag):
 
     # Keypoint loss
     loc_loss = d_uv_l2_min[dist_norm_valid_mask].mean()
+    print("loc_loss",loc_loss)
     loss_2d += keypoint_loss_weight * loc_loss.mean()
 
     #Desc Head Loss, per-pixel level triplet loss from https://arxiv.org/pdf/1902.11046.pdf.
     if descriptor_loss:
         metric_loss, recall_2d = build_descriptor_loss(source_feat, target_feat, source_uv_norm.detach(), source_uv_warped_norm.detach(), source_uv_warped, keypoint_mask=border_mask, relax_field=relax_field)
         loss_2d += descriptor_loss_weight * metric_loss * 2
+        print("metric_loss",metric_loss)
     else:
         _, recall_2d = build_descriptor_loss(source_feat, target_feat, source_uv_norm, source_uv_warped_norm, source_uv_warped, keypoint_mask=border_mask, relax_field=relax_field, eval_only=True)
 
