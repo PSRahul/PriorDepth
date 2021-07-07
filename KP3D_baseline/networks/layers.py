@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+import sys
 
 import torch
 import torch.nn as nn
@@ -187,9 +188,15 @@ class Project3D(nn.Module):
         pix_coords = cam_points[:, :2, :] / (cam_points[:, 2, :].unsqueeze(1) + self.eps)
         pix_coords = pix_coords.view(self.batch_size, 2, self.height, self.width)
         pix_coords = pix_coords.permute(0, 2, 3, 1)
+        #print("pix_coords",pix_coords[0,:,:,:].shape)
+        #print("pix_coords unique",pix_coords[0,0,0,0])
+        
         pix_coords[..., 0] /= self.width - 1
         pix_coords[..., 1] /= self.height - 1
         pix_coords = (pix_coords - 0.5) * 2
+        #print("width",self.width)
+        #print("pix_coords unique",pix_coords[0,0,0,0])
+        #sys.exit(0)
         return pix_coords
 
 

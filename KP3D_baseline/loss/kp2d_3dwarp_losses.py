@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 from matplotlib.cm import get_cmap
 import matplotlib.pyplot as plt
+import sys
 
 from utils.image import (image_grid, to_color_normalized,
                               to_gray_normalized)
@@ -133,7 +134,7 @@ def warp_homography_batch(sources, homographies):
     return torch.stack(warped_sources, dim=0)
 
 
-def warp_kp_batch(inputs,outputs,flag):
+def warp_kp_batch_looped(inputs,outputs,flag):
     pix_coords=outputs[("sample", flag, 0)]
     if(flag==1):
         source_uv=outputs["source_uv_pred_next"].permute(0, 2, 3, 1)
@@ -149,6 +150,76 @@ def warp_kp_batch(inputs,outputs,flag):
         
     return source_uv_warped
 
+def warp_kp_batch_1(inputs,outputs,flag):
+    pix_coords=outputs[("sample", flag, 0)]
+    if(flag==1):
+        source_uv=outputs["source_uv_pred_next"].permute(0, 2, 3, 1)
+    if(flag==-1):
+        source_uv==outputs["source_uv_pred_previous"].permute(0, 2, 3, 1)
+
+    B, H, W, _ = source_uv.shape
+    print("source_uv_shape",source_uv.shape)
+    print("input shape",inputs[("color", 1,0)].shape)
+    print("output shape",outputs[("sample", 1,0)].shape)
+    print("output ",torch.unique(outputs[("sample", 1,0)][0,:,320,:]))
+
+    grid_test=torch.ones_like(outputs[("sample", 1,0)])
+
+    outputs_test = F.grid_sample(
+                    inputs[("color", 1,0)],
+                    grid_test,
+                    #outputs[("sample", 1, 0)],
+                    padding_mode="border")
+
+    plt.imsave("input_color_1.png", inputs[("color", 1,0)][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+    plt.imsave("output_color_1.png", outputs_test[0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+    
+
+    sys.exit(0)
+    source_uv_warped=torch.zeros_like(source_uv)
+    for b in range(B):
+        for i in range(H):
+            for j in range(W):
+                pass
+                #source_uv_warped[b,i,j,:]=pix_coords[b,i,j,:]
+                #print(i,j)
+                #print(pix_coords[b,i,j,:])
+                
+
+    return source_uv_warped
+
+def warp_kp_batch_2(inputs,outputs,flag):
+    pix_coords=outputs[("sample", flag, 0)]
+    if(flag==1):
+        source_uv=outputs["source_uv_pred_next"].permute(0, 2, 3, 1)
+    if(flag==-1):
+        source_uv==outputs["source_uv_pred_previous"].permute(0, 2, 3, 1)
+
+    #pix_coords[..., 0] = pix_coords[..., 0] / (self.width - 1)
+    #pix_coords[..., 1] = pix_coords[..., 1] /(self.height - 1)
+    #pix_coords = (pix_coords - 0.5) * 2
+    #print("pix_coords1",pix_coords.shape)
+    B, H, W, _ = source_uv.shape
+    #print(B,H,W)
+    pix_coords = (pix_coords +1) / 2
+    pix_coords[..., 1] = pix_coords[..., 1] *(H - 1)
+    pix_coords[..., 0] = pix_coords[..., 0] *(W - 1)
+
+    source_uv_warped=torch.zeros_like(source_uv)
+
+    print("source_uv",source_uv.shape)
+    for b in range(B):
+        for i in range(H):
+            for j in range(W):
+                a1,a2=source_uv[b,i,j,0].cpu().detach().numpy(),source_uv[b,i,j,1].cpu().detach().numpy()
+                source_uv_warped[b,i,j,:]=pix_coords[b,a1,a2,:]
+                
+    return source_uv_warped
+
+    #print("pix_coords2",pix_coords.shape)
+    #sys.exit(0)
+
+
 def calculate_3d_warping_loss(inputs,outputs,flag):
   
     loss_2d = 0
@@ -156,18 +227,19 @@ def calculate_3d_warping_loss(inputs,outputs,flag):
     device = inputs[("color_aug", flag, 0)].device
 
     if(flag==1):
-        source_score=outputs["source_score_next"] 
-        source_uv_pred=outputs["source_uv_pred_next"] 
-        source_feat=outputs["source_feat_next"]
+        target_score=outputs["source_score_next"] 
+        target_uv_pred=outputs["source_uv_pred_next"] 
+        target_feat=outputs["source_feat_next"]
 
     if(flag==-1):
-        source_score=outputs["source_score_previous"] 
-        source_uv_pred=outputs["source_uv_pred_previous"] 
-        source_feat=outputs["source_feat_previous"]
+        target_score=outputs["source_score_previous"] 
+        target_uv_pred=outputs["source_uv_pred_previous"] 
+        target_feat=outputs["source_feat_previous"]
     
-    target_score=outputs["target_score"] 
-    target_uv_pred=outputs["target_uv_pred"]
-    target_feat=outputs["target_feat"] 
+    source_score=outputs["target_score"] 
+    source_uv_pred=outputs["target_uv_pred"]
+    source_feat=outputs["target_feat"]
+
     _, _, Hc, Wc = target_score.shape
     target_uv_norm = target_uv_pred.clone()
     target_uv_norm[:,0] = (target_uv_norm[:,0] / (float(W-1)/2.)) - 1.
@@ -178,7 +250,7 @@ def calculate_3d_warping_loss(inputs,outputs,flag):
     source_uv_norm[:,0] = (source_uv_norm[:,0] / (float(W-1)/2.)) - 1.
     source_uv_norm[:,1] = (source_uv_norm[:,1] / (float(H-1)/2.)) - 1.
     source_uv_norm = source_uv_norm.permute(0, 2, 3, 1)
-    source_uv_warped=warp_kp_batch(inputs,outputs,flag)
+    source_uv_warped=warp_kp_batch_2(inputs,outputs,flag)
 
     source_uv_warped = source_uv_warped.permute(0, 3, 1, 2)
     source_uv_warped_norm = source_uv_warped.clone()
