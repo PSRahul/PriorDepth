@@ -219,6 +219,38 @@ def warp_kp_batch_2(inputs,outputs,flag):
     #print("pix_coords2",pix_coords.shape)
     #sys.exit(0)
 
+def warp_kp_batch_2(inputs,outputs,flag):
+    pix_coords=outputs[("sample", flag, 0)]
+    if(flag==1):
+        source_uv=outputs["source_uv_pred_next"].permute(0, 2, 3, 1)
+    if(flag==-1):
+        source_uv==outputs["source_uv_pred_previous"].permute(0, 2, 3, 1)
+
+    #pix_coords[..., 0] = pix_coords[..., 0] / (self.width - 1)
+    #pix_coords[..., 1] = pix_coords[..., 1] /(self.height - 1)
+    #pix_coords = (pix_coords - 0.5) * 2
+    #print("pix_coords1",pix_coords.shape)
+    B, H, W, _ = source_uv.shape
+    #print(B,H,W)
+    pix_coords = (pix_coords +1) / 2
+    pix_coords[..., 1] = pix_coords[..., 1] *(H - 1)
+    pix_coords[..., 0] = pix_coords[..., 0] *(W - 1)
+
+    source_uv_warped=torch.zeros_like(source_uv)
+
+    print("source_uv",source_uv.shape)
+    for b in range(B):
+        for i in range(H):
+            for j in range(W):
+                a1,a2=source_uv[b,i,j,0].cpu().detach().numpy(),source_uv[b,i,j,1].cpu().detach().numpy()
+                #source_uv_warped[b,i,j,:]=pix_coords[b,a1,a2,:]
+                source_uv_warped[b,i,j,:]=pix_coords[b,i,j,:]
+                
+    return source_uv_warped
+
+    #print("pix_coords2",pix_coords.shape)
+    #sys.exit(0)
+
 
 def calculate_3d_warping_loss(inputs,outputs,flag):
   
