@@ -62,7 +62,7 @@ class KP3D_Baseline(nn.Module):
             #pose_encoder_path = os.path.join(opt.load_weights_folder, "pose_encoder.pth")
             #pose_decoder_path = os.path.join(opt.load_weights_folder, "pose.pth")
 
-            self.pose_encoder = ResnetEncoder(18, False,2)
+            self.pose_encoder = ResnetEncoder(18, True,2)
             self.pose_encoder.load_state_dict(torch.load("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth_Phase3/priordepth/KP3D_baseline/trained_models/pose_encoder.pth"))
 
             self.pose_decoder = PoseDecoder(self.pose_encoder.num_ch_enc, 1, 2)
@@ -216,26 +216,57 @@ class KP3D_Baseline(nn.Module):
                                                 epoch,batch_idx)
 
         if self.opt.use_posenet_for_3dwarping:
-            all_color_aug = torch.cat([input_image[("color_aug", i, 0)] for i in [0, 1]], 1)
-            features = [self.pose_encoder(all_color_aug)]
-            axisangle, translation = self.pose_decoder(features)
-            #print("axisangle",axisangle.shape)
-            #print("translation",translation.shape)
-            pose_output=transformation_from_parameters(axisangle[:, 0], translation[:, 0])
-            #print("temp1",temp1.shape)
-            outputs["pose_output_t1"] = pose_output
+           
+            pose_feats = {f_i: input_image["color_aug", f_i, 0] for f_i in self.opt.frame_ids}
 
-            all_color_aug = torch.cat([input_image[("color_aug", i, 0)] for i in [0, -1]], 1)
-            features = [self.pose_encoder(all_color_aug)]
-            axisangle, translation = self.pose_decoder(features)
-            #print("axisangle",axisangle.shape)
-            #print("translation",translation.shape)
-            pose_output=transformation_from_parameters(axisangle[:, 0], translation[:, 0])
-            #print("temp1",temp1.shape)
-            outputs["pose_output_t2"] = pose_output
+            for f_i in self.opt.frame_ids[1:]:
+                if f_i != "s":
+                    # To maintain ordering we always pass frames in temporal order
+                    if f_i < 0:
+                        pose_inputs = [pose_feats[f_i], pose_feats[0]]
+                    else:
+                        pose_inputs = [pose_feats[0], pose_feats[f_i]]
+
+                    pose_inputs = [self.pose_encoder(torch.cat(pose_inputs, 1))]
+                    axisangle, translation = self.pose_decoder(pose_inputs)
+                    outputs[("axisangle", 0, f_i)] = axisangle
+                    outputs[("translation", 0, f_i)] = translation
+                    outputs[("cam_T_cam", 0, f_i)] = transformation_from_parameters(
+                        axisangle[:, 0], translation[:, 0], invert=(f_i < 0))
+
+            """
+                pose_inputs = torch.cat([input_image[("color_aug", i, 0)] for i in self.opt.frame_ids if i != "s"], 1)
+                
+                pose_inputs=self.pose_encoder(pose_inputs)
+                axisangle, translation = self.pose_encoder(pose_inputs)
+                
+                for i, f_i in enumerate(self.opt.frame_ids[1:]):
+                    if f_i != "s":
+                        outputs[("axisangle", 0, f_i)] = axisangle
+                        outputs[("translation", 0, f_i)] = translation
+                        outputs[("cam_T_cam", 0, f_i)] = transformation_from_parameters(axisangle[:, i], translation[:, i])
+
+                
+                all_color_aug = torch.cat([input_image[("color_aug", i, 0)] for i in [1, 0]], 1)
+                features = [self.pose_encoder(all_color_aug)]
+                axisangle, translation = self.pose_decoder(features)
+                print("axisangle",axisangle.shape)
+                print("translation +1",translation.shape)
+                pose_output=transformation_from_parameters(axisangle[:, 0], translation[:, 0])
+                #print("temp1",temp1.shape)
+                outputs["pose_output_t1"] = pose_output
 
 
-
+                all_color_aug_1 = torch.cat([input_image[("color_aug", i, 0)] for i in [-1,0]], 1)
+                features = [self.pose_encoder(all_color_aug_1)]
+                axisangle, translation = self.pose_decoder(features)
+                #print("axisangle",axisangle.shape)
+                print("translation -1",translation)
+                pose_output=transformation_from_parameters(axisangle[:, 0], translation[:, 0])
+                #print("temp1",temp1.shape)
+                outputs["pose_output_t2"] = pose_output
+            """
+        
         outputs["R_t1"] = R_t1
         outputs["t_t1"] = t_t1
         outputs["R_t2"] = R_t2

@@ -180,9 +180,12 @@ class Trainer:
 
         #print(outputs.keys())
         self.generate_images_pred(inputs, outputs)
-        #plt.imsave("input.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        #plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        #plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input.png",inputs["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_next.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_previous.png",inputs["color_aug", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        
+        plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
 
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
@@ -484,7 +487,7 @@ class Trainer:
                     T[:, 3, 3] = 1
                     
                     if(self.opt.use_posenet_for_3dwarping):
-                        T = outputs["pose_output_t1"]
+                        T = outputs[("cam_T_cam", 0, frame_id)]
                     
                 elif frame_id == -1:
                     T[:, :3, :3] = outputs['R_t2']
@@ -492,7 +495,7 @@ class Trainer:
                     T[:, 3, 3] = 1
 
                     if(self.opt.use_posenet_for_3dwarping):
-                        T = outputs["pose_output_t2"]
+                        T = outputs[("cam_T_cam", 0, frame_id)]
                     
 
                 cam_points = self.backproject_depth[source_scale](
