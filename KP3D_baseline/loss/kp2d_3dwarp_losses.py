@@ -139,7 +139,7 @@ def warp_kp_batch_looped(inputs,outputs,flag):
     if(flag==1):
         source_uv=outputs["source_uv_pred_next"].permute(0, 2, 3, 1)
     if(flag==-1):
-        source_uv==outputs["source_uv_pred_previous"].permute(0, 2, 3, 1)
+        source_uv=outputs["source_uv_pred_previous"].permute(0, 2, 3, 1)
 
     B, H, W, _ = source_uv.shape
     source_uv_warped=torch.zeros_like(source_uv)
@@ -158,10 +158,10 @@ def warp_kp_batch_1(inputs,outputs,flag):
         source_uv==outputs["source_uv_pred_previous"].permute(0, 2, 3, 1)
 
     B, H, W, _ = source_uv.shape
-    print("source_uv_shape",source_uv.shape)
-    print("input shape",inputs[("color", 1,0)].shape)
-    print("output shape",outputs[("sample", 1,0)].shape)
-    print("output ",torch.unique(outputs[("sample", 1,0)][0,:,320,:]))
+    #print("source_uv_shape",source_uv.shape)
+    #print("input shape",inputs[("color", 1,0)].shape)
+    #print("output shape",outputs[("sample", 1,0)].shape)
+    #print("output ",torch.unique(outputs[("sample", 1,0)][0,:,320,:]))
 
     grid_test=torch.ones_like(outputs[("sample", 1,0)])
 
@@ -207,7 +207,7 @@ def warp_kp_batch_2(inputs,outputs,flag):
 
     source_uv_warped=torch.zeros_like(source_uv)
 
-    print("source_uv",source_uv.shape)
+    #print("source_uv",source_uv.shape)
     for b in range(B):
         for i in range(H):
             for j in range(W):
@@ -224,7 +224,7 @@ def warp_kp_batch_2(inputs,outputs,flag):
     if(flag==1):
         source_uv=outputs["source_uv_pred_next"].permute(0, 2, 3, 1)
     if(flag==-1):
-        source_uv==outputs["source_uv_pred_previous"].permute(0, 2, 3, 1)
+        source_uv=outputs["source_uv_pred_previous"].permute(0, 2, 3, 1)
 
     #pix_coords[..., 0] = pix_coords[..., 0] / (self.width - 1)
     #pix_coords[..., 1] = pix_coords[..., 1] /(self.height - 1)
@@ -238,7 +238,7 @@ def warp_kp_batch_2(inputs,outputs,flag):
 
     source_uv_warped=torch.zeros_like(source_uv)
 
-    print("source_uv",source_uv.shape)
+    #print("source_uv",source_uv.shape)
     for b in range(B):
         for i in range(H):
             for j in range(W):
@@ -323,14 +323,14 @@ def calculate_3d_warping_loss(inputs,outputs,flag):
 
     # Keypoint loss
     loc_loss = d_uv_l2_min[dist_norm_valid_mask].mean()
-    print("loc_loss",loc_loss)
+    #print("loc_loss",loc_loss)
     loss_2d += keypoint_loss_weight * loc_loss.mean()
 
     #Desc Head Loss, per-pixel level triplet loss from https://arxiv.org/pdf/1902.11046.pdf.
     if descriptor_loss:
         metric_loss, recall_2d = build_descriptor_loss(source_feat, target_feat, source_uv_norm.detach(), source_uv_warped_norm.detach(), source_uv_warped, keypoint_mask=border_mask, relax_field=relax_field)
         loss_2d += descriptor_loss_weight * metric_loss * 2
-        print("metric_loss",metric_loss)
+        #print("metric_loss",metric_loss)
     else:
         _, recall_2d = build_descriptor_loss(source_feat, target_feat, source_uv_norm, source_uv_warped_norm, source_uv_warped, keypoint_mask=border_mask, relax_field=relax_field, eval_only=True)
 

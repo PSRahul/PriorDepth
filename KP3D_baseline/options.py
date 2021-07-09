@@ -137,7 +137,7 @@ class KP3DOptions:
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
-                                 default=0)
+                                 default=1)
 
         self.parser.add_argument("--use_pnp",
                                  help="if set, use pnp",
@@ -269,6 +269,12 @@ class KP3DOptions:
                                  help="if set will perform the flipping post processing "
                                       "from the original monodepth paper",
                                  action="store_true")
+
+
+        self.parser.add_argument("--use_posenet_for_3dwarping",
+                                 type=int,
+                                 help="switch warping debug mode",
+                                 default=1)
 
     def parse(self):
         self.options = self.parser.parse_args()

@@ -9,7 +9,9 @@ from  datasets.kp2d_augmentations import *
 from layers import *
 import torch
 import os
-
+from .pose_cnn import *
+from .pose_decoder import *
+            
 
 class KP3D_Baseline(nn.Module):
     def __init__(self, options, K1, K2, epoch, batch_idx):
@@ -53,6 +55,27 @@ class KP3D_Baseline(nn.Module):
 
         for param in self.keypoint_net.parameters():
             param.requires_grad = False    
+
+
+        if self.opt.use_posenet_for_3dwarping:
+            print("Using PoseNet for Pose Calculations") 
+            #pose_encoder_path = os.path.join(opt.load_weights_folder, "pose_encoder.pth")
+            #pose_decoder_path = os.path.join(opt.load_weights_folder, "pose.pth")
+
+            self.pose_encoder = ResnetEncoder(18, False,2)
+            self.pose_encoder.load_state_dict(torch.load("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth_Phase3/priordepth/KP3D_baseline/trained_models/pose_encoder.pth"))
+
+            self.pose_decoder = PoseDecoder(self.pose_encoder.num_ch_enc, 1, 2)
+            self.pose_decoder.load_state_dict(torch.load("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth_Phase3/priordepth/KP3D_baseline/trained_models/pose.pth"))
+
+            self.pose_encoder.cuda()
+            self.pose_encoder.eval()
+            self.pose_decoder.cuda()
+            self.pose_decoder.eval()
+
+
+            print("Loaded PoseNet")
+
 
         
         #for param in self.depth_encoder.parameters():
@@ -182,10 +205,33 @@ class KP3D_Baseline(nn.Module):
                                                 kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
                                                 epoch,batch_idx)
 
+            #print("R_t1",R_t1.shape)
+            #print("t_t1",t_t1.shape)
             R_t2, t_t2 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", -1, 0],
                                                 kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
                                                 kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
                                                 epoch,batch_idx)
+
+        if self.opt.use_posenet_for_3dwarping:
+            all_color_aug = torch.cat([input_image[("color_aug", i, 0)] for i in [0, 1]], 1)
+            features = [self.pose_encoder(all_color_aug)]
+            axisangle, translation = self.pose_decoder(features)
+            #print("axisangle",axisangle.shape)
+            #print("translation",translation.shape)
+            pose_output=transformation_from_parameters(axisangle[:, 0], translation[:, 0])
+            #print("temp1",temp1.shape)
+            outputs["pose_output_t1"] = pose_output
+
+            all_color_aug = torch.cat([input_image[("color_aug", i, 0)] for i in [0, -1]], 1)
+            features = [self.pose_encoder(all_color_aug)]
+            axisangle, translation = self.pose_decoder(features)
+            #print("axisangle",axisangle.shape)
+            #print("translation",translation.shape)
+            pose_output=transformation_from_parameters(axisangle[:, 0], translation[:, 0])
+            #print("temp1",temp1.shape)
+            outputs["pose_output_t2"] = pose_output
+
+
 
         outputs["R_t1"] = R_t1
         outputs["t_t1"] = t_t1
