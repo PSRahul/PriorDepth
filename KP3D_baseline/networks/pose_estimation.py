@@ -6,13 +6,18 @@ import numpy as np
 from pytorch3d.ops import perspective_n_points
 
 class PoseEstimation:
-    def __init__(self, K1, K2, cuda,log_dir,visualise_images):
+    def __init__(self, K1, K2, cuda,log_dir,visualise_images, epipolar_dist):
         # TODO: check this K1&2 is correct or not!
         self.K1 = K1[:, :3, :3]
         self.K2 = K2[:, :3, :3]
+        self.K1[:, 0, :] *= 640
+        self.K1[:, 1, :] *= 192
+        self.K2[:, 0, :] *= 640
+        self.K2[:, 1, :] *= 192
         self.device = torch.device("cpu" if cuda else "cuda")
         self.log_dir=log_dir
         self.visualise_images=visualise_images
+        self.epipolar_distance = epipolar_dist
 
     def good_matches(self, match_dist, match_idx, threshold=150):
         good_matches = []
@@ -45,7 +50,7 @@ class PoseEstimation:
                                                    torch.ones((match_kp1.shape[0], match_kp1.shape[1])).to(self.device))
 
         ess_mat = kornia.geometry.essential_from_fundamental(fun_mat, self.K1, self.K2)
-        return ess_mat
+        return ess_mat, fun_mat
 
     def get_six_dof(self, ess_mat, kp1, kp2):
         return kornia.geometry.motion_from_essential_choose_solution(ess_mat, self.K1, self.K2, kp1, kp2)
@@ -86,9 +91,16 @@ class PoseEstimation:
             curr_des2 = des2[i, :, :]
 
             match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2)
-
-            ess_mat = self.find_essential_matrix(match_kp1, match_kp2)
-
+            ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
+            if self.epipolar_distance:
+                distances = kornia.geometry.symmetrical_epipolar_distance(match_kp1, match_kp2, fun_mat)
+                mask = distances < 0.03
+                mask = torch.stack((mask[0, :], mask[0, :]), dim=1)
+                mask = torch.unsqueeze(mask, dim=0)
+                match_kp1 = torch.masked_select(match_kp1[0], mask)
+                match_kp2 = torch.masked_select(match_kp2[0], mask)
+                match_kp1 = torch.reshape(match_kp1, (1, int(match_kp1.shape[0] / 2), 2))
+                match_kp2 = torch.reshape(match_kp2, (1, int(match_kp2.shape[0] / 2), 2))
             R, t, tri_points = self.get_six_dof(ess_mat, match_kp1, match_kp2)
             outputs_R = torch.cat((outputs_R, R), dim=0)
             outputs_t = torch.cat((outputs_t, t), dim=0)
@@ -103,10 +115,6 @@ class PoseEstimation:
     def reproject_points(self, depth_img, kp):
         rounded_kp = np.array(np.round(kp[0].cpu())).astype(int)
         depth_vals = depth_img[0, rounded_kp[:, 1], rounded_kp[:, 0]]
-        #mask = np.where(depth_vals.cpu() > 0)[0]
-
-        #kp = kp[0, mask, :]
-        #depth_vals = depth_vals[mask]
         kp=kp[0]
         depth_vals2 = torch.stack((depth_vals, depth_vals), dim=1)
         c_x_y = torch.Tensor([self.K1[0, 0, 2], self.K1[0, 1, 2]]).to(self.device)
@@ -126,6 +134,17 @@ class PoseEstimation:
             curr_des2 = des2[i, :, :]
             curr_depth = depth_img[i, :, :, :]
             match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2)
+
+            ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
+            if self.epipolar_distance:
+                distances = kornia.geometry.symmetrical_epipolar_distance(match_kp1, match_kp2, fun_mat)
+                mask = distances < 0.1
+                mask = torch.stack((mask[0, :], mask[0, :]), dim=1)
+                mask = torch.unsqueeze(mask, dim=0)
+                match_kp1 = torch.masked_select(match_kp1[0], mask)
+                match_kp2 = torch.masked_select(match_kp2[0], mask)
+                match_kp1 = torch.reshape(match_kp1, (1, int(match_kp1.shape[0] / 2), 2))
+                match_kp2 = torch.reshape(match_kp2, (1, int(match_kp2.shape[0] / 2), 2))
 
             kp3d = self.reproject_points(curr_depth, match_kp1)
             output = perspective_n_points.efficient_pnp(kp3d, match_kp1)
