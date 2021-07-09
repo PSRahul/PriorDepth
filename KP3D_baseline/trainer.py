@@ -180,12 +180,12 @@ class Trainer:
 
         #print(outputs.keys())
         self.generate_images_pred(inputs, outputs)
-        plt.imsave("input.png",inputs["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        plt.imsave("input_next.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        plt.imsave("input_previous.png",inputs["color_aug", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input.png",inputs["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input_next.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input_previous.png",inputs["color_aug", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
         
-        plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
 
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
