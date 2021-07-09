@@ -125,19 +125,31 @@ class KP3DOptions:
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
-                                 default=1)
+                                 default=0)
+
+        self.parser.add_argument("--kp_training_2dwarp_start_epoch",
+                                 nargs="?",
+                                 type=int,
+                                 help="Epoch to start 2D Warping Training",
+                                 default=5)
 
         self.parser.add_argument("--kp_training_3dwarp_next",
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
-                                 default=1)
+                                 default=0)
 
         self.parser.add_argument("--kp_training_3dwarp_previous",
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
-                                 default=1)
+                                 default=0)
+       
+        self.parser.add_argument("--kp_training_3dwarp_start_epoch",
+                                 nargs="?",
+                                 type=int,
+                                 help="Epoch to start 3D Warping Training",
+                                 default=5)
 
         self.parser.add_argument("--use_pnp",
                                  help="if set, use pnp",

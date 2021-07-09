@@ -171,9 +171,10 @@ class Trainer:
         for key, ipt in inputs.items():
             inputs[key] = ipt.to(self.device)
         #print("input keys",inputs.keys()) 
-        if self.opt.kp_training_2dwarp:
-            inputs=self.preprocess_kp2d_batch(inputs)   
-        #print("input keys",inputs.keys()) 
+        if (self.epoch>=self.opt.kp_training_2dwarp_start_epoch):
+            if self.opt.kp_training_2dwarp:
+                inputs=self.preprocess_kp2d_batch(inputs)   
+            #print("input keys",inputs.keys()) 
         outputs = self.model(inputs,self.epoch,batch_idx)
         
 
@@ -211,24 +212,29 @@ class Trainer:
         losses = {}
         total_loss = 0
         loss_2d_warping=0
-        if self.opt.kp_training_2dwarp:
-            loss_2d_warping=calculate_2d_warping_loss(inputs,outputs)
-            total_loss+=loss_2d_warping
-            losses["2d_warping_loss"] = loss_2d_warping
-            print(loss_2d_warping)
+        if (self.epoch>=self.opt.kp_training_2dwarp_start_epoch):
 
-        if self.opt.kp_training_3dwarp_next:
-            loss_3d_warping_next=calculate_3d_warping_loss(inputs,outputs,flag=1)
-            total_loss+=loss_3d_warping_next
-            losses["loss_3d_warping_next"] = loss_3d_warping_next
-            print(loss_3d_warping_next)
+            if self.opt.kp_training_2dwarp:
+                loss_2d_warping=calculate_2d_warping_loss(inputs,outputs)
+                total_loss+=loss_2d_warping
+                losses["2d_warping_loss"] = loss_2d_warping
+                print(loss_2d_warping)
+
+        if (self.epoch>=self.opt.kp_training_3dwarp_start_epoch):    
+
+            if self.opt.kp_training_3dwarp_next:
+
+                loss_3d_warping_next=calculate_3d_warping_loss(inputs,outputs,flag=1)
+                total_loss+=loss_3d_warping_next
+                losses["loss_3d_warping_next"] = loss_3d_warping_next
+                print(loss_3d_warping_next)
 
 
-        if self.opt.kp_training_3dwarp_previous:
-            loss_3d_warping_previous=calculate_3d_warping_loss(inputs,outputs,flag=-1)
-            total_loss+=loss_3d_warping_previous
-            losses["loss_3d_warping_next"] = loss_3d_warping_previous
-            print(loss_3d_warping_previous)
+            if self.opt.kp_training_3dwarp_previous:
+                loss_3d_warping_previous=calculate_3d_warping_loss(inputs,outputs,flag=-1)
+                total_loss+=loss_3d_warping_previous
+                losses["loss_3d_warping_next"] = loss_3d_warping_previous
+                print(loss_3d_warping_previous)
 
         for scale in self.opt.scales:
             loss = 0

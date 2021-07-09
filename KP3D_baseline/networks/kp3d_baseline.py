@@ -146,40 +146,43 @@ class KP3D_Baseline(nn.Module):
         #plt.imsave("source_img.png",source_img.permute(1,2,0).detach().cpu().numpy())
         #plt.imsave("input.png",input_image["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
         #plt.imsave("input_wrapped.png",input_image["color_aug_wrapped_kp2d", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-
+        #print("epoch",epoch)
 
         kp2d_output1 = self.keypoint_net(input_image["color_aug", 0, 0])
-        if self.opt.kp_training_2dwarp:
-            source_score, source_uv_pred, source_feat=self.keypoint_net(input_image["color_aug_wrapped_kp2d", 0, 0])
-            target_score, target_uv_pred, target_feat=kp2d_output1
-            outputs["source_score"] = source_score
-            outputs["source_uv_pred"] = source_uv_pred
-            outputs["source_feat"] =source_feat
-            outputs["target_score"] = target_score
-            outputs["target_uv_pred"] = target_uv_pred
-            outputs["target_feat"] = target_feat
+        if (epoch>=self.opt.kp_training_2dwarp_start_epoch):
+            if self.opt.kp_training_2dwarp:
+                source_score, source_uv_pred, source_feat=self.keypoint_net(input_image["color_aug_wrapped_kp2d", 0, 0])
+                target_score, target_uv_pred, target_feat=kp2d_output1
+                outputs["source_score"] = source_score
+                outputs["source_uv_pred"] = source_uv_pred
+                outputs["source_feat"] =source_feat
+                outputs["target_score"] = target_score
+                outputs["target_uv_pred"] = target_uv_pred
+                outputs["target_feat"] = target_feat
 
 
         kp2d_output1 = self.batch_reshape_kp2d_preds(kp2d_output1, 1)
 
         kp2d_output2 = self.keypoint_net(input_image["color_aug", 1, 0])
         
-        if self.opt.kp_training_3dwarp_next:
-            source_score, source_uv_pred, source_feat=kp2d_output2
-            outputs["source_score_next"] = source_score
-            outputs["source_uv_pred_next"] = source_uv_pred
-            outputs["source_feat_next"] =source_feat
-        
+        if (epoch>=self.opt.kp_training_3dwarp_start_epoch):
+            if self.opt.kp_training_3dwarp_next:
+                source_score, source_uv_pred, source_feat=kp2d_output2
+                outputs["source_score_next"] = source_score
+                outputs["source_uv_pred_next"] = source_uv_pred
+                outputs["source_feat_next"] =source_feat
+            
         kp2d_output2 = self.batch_reshape_kp2d_preds(kp2d_output2, 2)
 
         kp2d_output3 = self.keypoint_net(input_image["color_aug", -1, 0])
 
-        if self.opt.kp_training_3dwarp_previous:
-            source_score, source_uv_pred, source_feat=kp2d_output3
-            outputs["source_score_previous"] = source_score
-            outputs["source_uv_pred_previous"] = source_uv_pred
-            outputs["source_feat_previous"] =source_feat
-        
+        if (epoch>=self.opt.kp_training_3dwarp_start_epoch):
+            if self.opt.kp_training_3dwarp_previous:
+                source_score, source_uv_pred, source_feat=kp2d_output3
+                outputs["source_score_previous"] = source_score
+                outputs["source_uv_pred_previous"] = source_uv_pred
+                outputs["source_feat_previous"] =source_feat
+            
         kp2d_output3 = self.batch_reshape_kp2d_preds(kp2d_output3, 3)
 
         outputs.update(kp2d_output1)
