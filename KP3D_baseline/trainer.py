@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from  datasets.kp2d_augmentations import *
 from networks.kp3d_baseline import KP3D_Baseline
 from loss.kp2d_2dwarp_losses import *
+from loss.kp2d_3dwarp_losses import *
 
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
@@ -170,12 +171,22 @@ class Trainer:
         for key, ipt in inputs.items():
             inputs[key] = ipt.to(self.device)
         #print("input keys",inputs.keys()) 
-        if self.opt.kp_training_2dwarp:
-            inputs=self.preprocess_kp2d_batch(inputs)   
-        #print("input keys",inputs.keys()) 
+        if (self.epoch>=self.opt.kp_training_2dwarp_start_epoch):
+            if self.opt.kp_training_2dwarp:
+                inputs=self.preprocess_kp2d_batch(inputs)   
+            #print("input keys",inputs.keys()) 
         outputs = self.model(inputs,self.epoch,batch_idx)
+        
+
         #print(outputs.keys())
         self.generate_images_pred(inputs, outputs)
+        plt.imsave("input.png",inputs["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_next.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_previous.png",inputs["color_aug", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        
+        plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
 
@@ -204,11 +215,29 @@ class Trainer:
         losses = {}
         total_loss = 0
         loss_2d_warping=0
-        if self.opt.kp_training_2dwarp:
-            loss_2d_warping=calculate_2d_warping_loss(inputs,outputs)
-            total_loss+=loss_2d_warping
-            losses["2d_warping_loss"] = loss_2d_warping
-            #print(loss_2d_warping)
+        if (self.epoch>=self.opt.kp_training_2dwarp_start_epoch):
+
+            if self.opt.kp_training_2dwarp:
+                loss_2d_warping=calculate_2d_warping_loss(inputs,outputs)
+                total_loss+=loss_2d_warping
+                losses["2d_warping_loss"] = loss_2d_warping
+                print(loss_2d_warping)
+
+        if (self.epoch>=self.opt.kp_training_3dwarp_start_epoch):    
+
+            if self.opt.kp_training_3dwarp_next:
+
+                loss_3d_warping_next=calculate_3d_warping_loss(inputs,outputs,flag=1)
+                total_loss+=loss_3d_warping_next
+                losses["loss_3d_warping_next"] = loss_3d_warping_next
+                print(loss_3d_warping_next)
+
+
+            if self.opt.kp_training_3dwarp_previous:
+                loss_3d_warping_previous=calculate_3d_warping_loss(inputs,outputs,flag=-1)
+                total_loss+=loss_3d_warping_previous
+                losses["loss_3d_warping_next"] = loss_3d_warping_previous
+                print(loss_3d_warping_previous)
 
         for scale in self.opt.scales:
             loss = 0
@@ -456,10 +485,18 @@ class Trainer:
                     T[:, :3, :3] = outputs['R_t1']
                     T[:, :3, 3] = outputs['t_t1'].transpose(1, 2)[:, 0, :]
                     T[:, 3, 3] = 1
+                    
+                    if(self.opt.use_posenet_for_3dwarping):
+                        T = outputs[("cam_T_cam", 0, frame_id)]
+                    
                 elif frame_id == -1:
                     T[:, :3, :3] = outputs['R_t2']
                     T[:, :3, 3] = outputs['t_t2'].transpose(1, 2)[:, 0, :]
                     T[:, 3, 3] = 1
+
+                    if(self.opt.use_posenet_for_3dwarping):
+                        T = outputs[("cam_T_cam", 0, frame_id)]
+                    
 
                 cam_points = self.backproject_depth[source_scale](
                     depth, inputs[("inv_K", source_scale)])

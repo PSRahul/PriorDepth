@@ -9,7 +9,9 @@ from  datasets.kp2d_augmentations import *
 from layers import *
 import torch
 import os
-
+from .pose_cnn import *
+from .pose_decoder import *
+            
 
 class KP3D_Baseline(nn.Module):
     def __init__(self, options, K1, K2, epoch, batch_idx):
@@ -53,7 +55,28 @@ class KP3D_Baseline(nn.Module):
 
         for param in self.keypoint_net.parameters():
             param.requires_grad = False    
-        self.keypoint_net.to(device)
+
+
+        if self.opt.use_posenet_for_3dwarping:
+            print("Using PoseNet for Pose Calculations") 
+            #pose_encoder_path = os.path.join(opt.load_weights_folder, "pose_encoder.pth")
+            #pose_decoder_path = os.path.join(opt.load_weights_folder, "pose.pth")
+
+            self.pose_encoder = ResnetEncoder(18, True,2)
+            self.pose_encoder.load_state_dict(torch.load("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth_Phase3/priordepth/KP3D_baseline/trained_models/pose_encoder.pth"))
+
+            self.pose_decoder = PoseDecoder(self.pose_encoder.num_ch_enc, 1, 2)
+            self.pose_decoder.load_state_dict(torch.load("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth_Phase3/priordepth/KP3D_baseline/trained_models/pose.pth"))
+
+            self.pose_encoder.cuda()
+            self.pose_encoder.eval()
+            self.pose_decoder.cuda()
+            self.pose_decoder.eval()
+
+
+            print("Loaded PoseNet")
+
+
         
         #for param in self.depth_encoder.parameters():
         #    param.requires_grad = False
@@ -124,26 +147,43 @@ class KP3D_Baseline(nn.Module):
         #plt.imsave("source_img.png",source_img.permute(1,2,0).detach().cpu().numpy())
         #plt.imsave("input.png",input_image["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
         #plt.imsave("input_wrapped.png",input_image["color_aug_wrapped_kp2d", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-
+        #print("epoch",epoch)
 
         kp2d_output1 = self.keypoint_net(input_image["color_aug", 0, 0])
-        if self.opt.kp_training_2dwarp:
-            source_score, source_uv_pred, source_feat=self.keypoint_net(input_image["color_aug_wrapped_kp2d", 0, 0])
-            target_score, target_uv_pred, target_feat=kp2d_output1
-            outputs["source_score"] = source_score
-            outputs["source_uv_pred"] = source_uv_pred
-            outputs["source_feat"] =source_feat
-            outputs["target_score"] = target_score
-            outputs["target_uv_pred"] = target_uv_pred
-            outputs["target_feat"] = target_feat
+        if (epoch>=self.opt.kp_training_2dwarp_start_epoch):
+            if self.opt.kp_training_2dwarp:
+                source_score, source_uv_pred, source_feat=self.keypoint_net(input_image["color_aug_wrapped_kp2d", 0, 0])
+                target_score, target_uv_pred, target_feat=kp2d_output1
+                outputs["source_score"] = source_score
+                outputs["source_uv_pred"] = source_uv_pred
+                outputs["source_feat"] =source_feat
+                outputs["target_score"] = target_score
+                outputs["target_uv_pred"] = target_uv_pred
+                outputs["target_feat"] = target_feat
 
 
         kp2d_output1 = self.batch_reshape_kp2d_preds(kp2d_output1, 1)
 
         kp2d_output2 = self.keypoint_net(input_image["color_aug", 1, 0])
+        
+        if (epoch>=self.opt.kp_training_3dwarp_start_epoch):
+            if self.opt.kp_training_3dwarp_next:
+                source_score, source_uv_pred, source_feat=kp2d_output2
+                outputs["source_score_next"] = source_score
+                outputs["source_uv_pred_next"] = source_uv_pred
+                outputs["source_feat_next"] =source_feat
+            
         kp2d_output2 = self.batch_reshape_kp2d_preds(kp2d_output2, 2)
 
         kp2d_output3 = self.keypoint_net(input_image["color_aug", -1, 0])
+
+        if (epoch>=self.opt.kp_training_3dwarp_start_epoch):
+            if self.opt.kp_training_3dwarp_previous:
+                source_score, source_uv_pred, source_feat=kp2d_output3
+                outputs["source_score_previous"] = source_score
+                outputs["source_uv_pred_previous"] = source_uv_pred
+                outputs["source_feat_previous"] =source_feat
+            
         kp2d_output3 = self.batch_reshape_kp2d_preds(kp2d_output3, 3)
 
         outputs.update(kp2d_output1)
@@ -169,11 +209,65 @@ class KP3D_Baseline(nn.Module):
                                                 kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
                                                 epoch,batch_idx)
 
+            #print("R_t1",R_t1.shape)
+            #print("t_t1",t_t1.shape)
             R_t2, t_t2 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", -1, 0],
                                                 kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
                                                 kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
                                                 epoch,batch_idx)
 
+        if self.opt.use_posenet_for_3dwarping:
+           
+            pose_feats = {f_i: input_image["color_aug", f_i, 0] for f_i in self.opt.frame_ids}
+
+            for f_i in self.opt.frame_ids[1:]:
+                if f_i != "s":
+                    # To maintain ordering we always pass frames in temporal order
+                    if f_i < 0:
+                        pose_inputs = [pose_feats[f_i], pose_feats[0]]
+                    else:
+                        pose_inputs = [pose_feats[0], pose_feats[f_i]]
+
+                    pose_inputs = [self.pose_encoder(torch.cat(pose_inputs, 1))]
+                    axisangle, translation = self.pose_decoder(pose_inputs)
+                    outputs[("axisangle", 0, f_i)] = axisangle
+                    outputs[("translation", 0, f_i)] = translation
+                    outputs[("cam_T_cam", 0, f_i)] = transformation_from_parameters(
+                        axisangle[:, 0], translation[:, 0], invert=(f_i < 0))
+
+            """
+                pose_inputs = torch.cat([input_image[("color_aug", i, 0)] for i in self.opt.frame_ids if i != "s"], 1)
+                
+                pose_inputs=self.pose_encoder(pose_inputs)
+                axisangle, translation = self.pose_encoder(pose_inputs)
+                
+                for i, f_i in enumerate(self.opt.frame_ids[1:]):
+                    if f_i != "s":
+                        outputs[("axisangle", 0, f_i)] = axisangle
+                        outputs[("translation", 0, f_i)] = translation
+                        outputs[("cam_T_cam", 0, f_i)] = transformation_from_parameters(axisangle[:, i], translation[:, i])
+
+                
+                all_color_aug = torch.cat([input_image[("color_aug", i, 0)] for i in [1, 0]], 1)
+                features = [self.pose_encoder(all_color_aug)]
+                axisangle, translation = self.pose_decoder(features)
+                print("axisangle",axisangle.shape)
+                print("translation +1",translation.shape)
+                pose_output=transformation_from_parameters(axisangle[:, 0], translation[:, 0])
+                #print("temp1",temp1.shape)
+                outputs["pose_output_t1"] = pose_output
+
+
+                all_color_aug_1 = torch.cat([input_image[("color_aug", i, 0)] for i in [-1,0]], 1)
+                features = [self.pose_encoder(all_color_aug_1)]
+                axisangle, translation = self.pose_decoder(features)
+                #print("axisangle",axisangle.shape)
+                print("translation -1",translation)
+                pose_output=transformation_from_parameters(axisangle[:, 0], translation[:, 0])
+                #print("temp1",temp1.shape)
+                outputs["pose_output_t2"] = pose_output
+            """
+        
         outputs["R_t1"] = R_t1
         outputs["t_t1"] = t_t1
         outputs["R_t2"] = R_t2

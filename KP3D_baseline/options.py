@@ -25,15 +25,15 @@ class KP3DOptions:
                                  #default=os.path.join(file_dir,"kitti_data")
                                  #default=os.path.join(file_dir,"../../datasets/kitti_data"))
                                  #default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
-                                 #default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
-                                 default="/home/ubuntu/PriorDepth/datasets/kitti_data/")
+                                 default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
+                                 #default="/home/ubuntu/PriorDepth/datasets/kitti_data/")
 
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
                                  #default=os.path.join(os.path.expanduser("~"), "tmp"))
-                                 default="/home/ubuntu/PriorDepth/KP3D_exp_logs/"+str(date_time))
-                                 #default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/Prior_Depth_Phase2/kp3d_logs/"+str(date_time))
+                                 #default="/home/ubuntu/PriorDepth/KP3D_exp_logs/"+str(date_time))
+                                 default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth_Phase3/kp3d_logs/"+str(date_time))
 
         # TRAINING options
         self.parser.add_argument("--model_name",
@@ -128,6 +128,30 @@ class KP3DOptions:
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
+                                 default=1)
+
+        self.parser.add_argument("--kp_training_2dwarp_start_epoch",
+                                 nargs="?",
+                                 type=int,
+                                 help="Epoch to start 2D Warping Training",
+                                 default=0)
+
+        self.parser.add_argument("--kp_training_3dwarp_next",
+                                 nargs="?",
+                                 type=int,
+                                 help="Set to 0 to disable KP training",
+                                 default=1)
+
+        self.parser.add_argument("--kp_training_3dwarp_previous",
+                                 nargs="?",
+                                 type=int,
+                                 help="Set to 0 to disable KP training",
+                                 default=1)
+       
+        self.parser.add_argument("--kp_training_3dwarp_start_epoch",
+                                 nargs="?",
+                                 type=int,
+                                 help="Epoch to start 3D Warping Training",
                                  default=0)
 
         self.parser.add_argument("--use_pnp",
@@ -140,7 +164,7 @@ class KP3DOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=12) # 8
+                                 default=3) # 8
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
@@ -260,6 +284,12 @@ class KP3DOptions:
                                  help="if set will perform the flipping post processing "
                                       "from the original monodepth paper",
                                  action="store_true")
+
+
+        self.parser.add_argument("--use_posenet_for_3dwarping",
+                                 type=int,
+                                 help="switch warping debug mode",
+                                 default=1)
 
     def parse(self):
         self.options = self.parser.parse_args()
