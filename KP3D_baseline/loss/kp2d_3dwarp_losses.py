@@ -188,7 +188,7 @@ def warp_kp_batch_1(inputs,outputs,flag):
 
     return source_uv_warped
 
-def warp_kp_batch_2(inputs,outputs,flag):
+def warp_kp_batch_2_old(inputs,outputs,flag):
     pix_coords=outputs[("sample", flag, 0)]
     if(flag==1):
         source_uv=outputs["source_uv_pred_next"].permute(0, 2, 3, 1)

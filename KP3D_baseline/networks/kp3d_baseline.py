@@ -53,8 +53,9 @@ class KP3D_Baseline(nn.Module):
             checkpoint = torch.load(self.opt.kp2d_initial_ckpt, map_location=device)
             self.keypoint_net.load_state_dict(checkpoint['state_dict'])
 
-        for param in self.keypoint_net.parameters():
-            param.requires_grad = False    
+        if(self.opt.freeze_kp2d):
+            for param in self.keypoint_net.parameters():
+                param.requires_grad = False    
 
 
         if self.opt.use_posenet_for_3dwarping:
