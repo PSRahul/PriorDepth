@@ -72,8 +72,13 @@ class Trainer:
             val_dataset, self.opt.batch_size, True,
             num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
         self.val_iter = iter(self.val_loader)
-
-        self.model = KP3D_Baseline(self.opt, self.K, self.K,0,0).to(self.device)
+        K1 = self.K[:, :3, :3]
+        K2 = self.K[:, :3, :3]
+        K1[:, 0, :] *= 640
+        K1[:, 1, :] *= 192
+        #K2[:, 0, :] *= 640
+        #K2[:, 1, :] *= 192
+        self.model = KP3D_Baseline(self.opt, K1, K2, 0, 0).to(self.device)
 
         self.model_optimizer = optim.Adam(self.model.parameters(), self.opt.learning_rate)
         self.model_lr_scheduler = optim.lr_scheduler.StepLR(

@@ -10,10 +10,19 @@ class PoseEstimation:
         # TODO: check this K1&2 is correct or not!
         self.K1 = K1[:, :3, :3]
         self.K2 = K2[:, :3, :3]
-        self.K1[:, 0, :] *= 640
-        self.K1[:, 1, :] *= 192
-        self.K2[:, 0, :] *= 640
-        self.K2[:, 1, :] *= 192
+        # print('=========================')
+        # print('K1 and K2 in initialization of Pose Estimation')
+        # print('K1', K1)
+        # print('K2', K2)
+        # print('=========================')
+        #self.K1[:, 0, :] *= 640
+        #self.K1[:, 1, :] *= 192
+        #self.K2[:, 0, :] *= 640
+        #self.K2[:, 1, :] *= 192
+        # print('=========================')
+        # print('self K1', self.K1)
+        # print('self K2', self.K2)
+        # print('=========================')
         self.device = torch.device("cpu" if cuda else "cuda")
         self.log_dir=log_dir
         self.visualise_images=visualise_images
