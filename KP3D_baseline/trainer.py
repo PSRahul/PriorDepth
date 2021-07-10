@@ -484,13 +484,14 @@ class Trainer:
             outputs[("depth", 0, scale)] = depth
             inv_depth = 1 / depth
             mean_inv_depth = inv_depth.mean(3, True).mean(2, True)
+            mean_inv_depth = torch.reshape(mean_inv_depth, (mean_inv_depth.shape[0], 1))
 
             # where we warp image!
             for i, frame_id in enumerate(self.opt.frame_ids[1:]):
                 T = torch.zeros((self.opt.batch_size, 4, 4)).to(self.device)
                 if frame_id == 1:
                     T[:, :3, :3] = outputs['R_t1']
-                    T[:, :3, 3] = outputs['t_t1'].transpose(1, 2)[:, 0, :]* mean_inv_depth[:, 0]
+                    T[:, :3, 3] = outputs['t_t1'].transpose(1, 2)[:, 0, :] * mean_inv_depth
                     T[:, 3, 3] = 1
                     
                     if(self.opt.use_posenet_for_3dwarping):
@@ -498,7 +499,7 @@ class Trainer:
                     
                 elif frame_id == -1:
                     T[:, :3, :3] = outputs['R_t2']
-                    T[:, :3, 3] = outputs['t_t2'].transpose(1, 2)[:, 0, :]* mean_inv_depth[:, 0]
+                    T[:, :3, 3] = outputs['t_t2'].transpose(1, 2)[:, 0, :] * mean_inv_depth
                     T[:, 3, 3] = 1
 
                     if(self.opt.use_posenet_for_3dwarping):
