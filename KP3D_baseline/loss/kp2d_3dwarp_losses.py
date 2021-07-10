@@ -235,7 +235,7 @@ def warp_kp_batch_2(inputs,outputs,flag):
     pix_coords = (pix_coords +1) / 2
     pix_coords[..., 1] = pix_coords[..., 1] *(H - 1)
     pix_coords[..., 0] = pix_coords[..., 0] *(W - 1)
-
+    #print(pix_coords.shape)
     source_uv_warped=torch.zeros_like(source_uv)
 
     #print("source_uv",source_uv.shape)
@@ -243,8 +243,12 @@ def warp_kp_batch_2(inputs,outputs,flag):
         for i in range(H):
             for j in range(W):
                 a1,a2=source_uv[b,i,j,0].cpu().detach().numpy(),source_uv[b,i,j,1].cpu().detach().numpy()
-                #source_uv_warped[b,i,j,:]=pix_coords[b,a1,a2,:]
-                source_uv_warped[b,i,j,:]=pix_coords[b,i,j,:]
+                if(a1<192) and (a2<640):
+                    source_uv_warped[b,i,j,:]=pix_coords[b,a1,a2,:]
+                else:
+                    source_uv_warped[b,i,j,:]=0
+                    source_uv[b,i,j,:]=0    
+                #source_uv_warped[b,i,j,:]=pix_coords[b,i,j,:]
                 
     return source_uv_warped
 

@@ -113,7 +113,7 @@ class PoseEstimation:
         return outputs_R, outputs_t
 
     def reproject_points(self, depth_img, kp):
-        rounded_kp = np.array(np.round(kp[0].cpu())).astype(int)
+        rounded_kp = np.array(np.round(kp[0].cpu().detach().numpy())).astype(int)
         depth_vals = depth_img[0, rounded_kp[:, 1], rounded_kp[:, 0]]
         kp=kp[0]
         depth_vals2 = torch.stack((depth_vals, depth_vals), dim=1)

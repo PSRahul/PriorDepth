@@ -180,12 +180,12 @@ class Trainer:
 
         #print(outputs.keys())
         self.generate_images_pred(inputs, outputs)
-        plt.imsave("input.png",inputs["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        plt.imsave("input_next.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        plt.imsave("input_previous.png",inputs["color_aug", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input.png",inputs["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input_next.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input_previous.png",inputs["color_aug", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
         
-        plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        #plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
 
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
@@ -221,7 +221,7 @@ class Trainer:
                 loss_2d_warping=calculate_2d_warping_loss(inputs,outputs)
                 total_loss+=loss_2d_warping
                 losses["2d_warping_loss"] = loss_2d_warping
-                print(loss_2d_warping)
+                #print(loss_2d_warping)
 
         if (self.epoch>=self.opt.kp_training_3dwarp_start_epoch):    
 
@@ -230,14 +230,14 @@ class Trainer:
                 loss_3d_warping_next=calculate_3d_warping_loss(inputs,outputs,flag=1)
                 total_loss+=loss_3d_warping_next
                 losses["loss_3d_warping_next"] = loss_3d_warping_next
-                print(loss_3d_warping_next)
+                #print(loss_3d_warping_next)
 
 
             if self.opt.kp_training_3dwarp_previous:
                 loss_3d_warping_previous=calculate_3d_warping_loss(inputs,outputs,flag=-1)
                 total_loss+=loss_3d_warping_previous
-                losses["loss_3d_warping_next"] = loss_3d_warping_previous
-                print(loss_3d_warping_previous)
+                losses["loss_3d_warping_previous"] = loss_3d_warping_previous
+                #print(loss_3d_warping_previous)
 
         for scale in self.opt.scales:
             loss = 0
