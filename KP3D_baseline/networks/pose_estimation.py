@@ -4,6 +4,7 @@ from matplotlib.patches import ConnectionPatch
 import matplotlib.pyplot as plt
 import numpy as np
 from pytorch3d.ops import perspective_n_points
+import sys
 
 class PoseEstimation:
     def __init__(self, K1, K2, cuda,log_dir,visualise_images, epipolar_dist):
@@ -61,6 +62,13 @@ class PoseEstimation:
         ess_mat = kornia.geometry.essential_from_fundamental(fun_mat, self.K1, self.K2)
         return ess_mat, fun_mat
 
+    def find_essential_matrix_batch(self, match_kp1_batch, match_kp2_batch,match_weights):
+        fun_mat_batch = kornia.geometry.find_fundamental(match_kp1_batch, match_kp2_batch,
+                                                   match_weights)
+
+        ess_mat_batch = kornia.geometry.essential_from_fundamental(fun_mat_batch, self.K1, self.K2)
+        return ess_mat_batch, fun_mat_batch
+
     def get_six_dof(self, ess_mat, kp1, kp2):
         return kornia.geometry.motion_from_essential_choose_solution(ess_mat, self.K1, self.K2, kp1, kp2)
 
@@ -93,6 +101,12 @@ class PoseEstimation:
         outputs_R = torch.tensor([]).to(self.device)
         outputs_t = torch.tensor([]).to(self.device)
         batch_size=kp1.shape[0]
+        match_kp1_batch=torch.zeros((batch_size,300,2),device=self.device)
+        match_kp2_batch=torch.zeros((batch_size,300,2),device=self.device)
+        match_weights=torch.zeros((batch_size,300),device=self.device)
+
+        #print(kp1.shape[0])
+        #print(match_kp1_batch.shape)
         for i in range(kp1.shape[0]):
             curr_kp1 = kp1[i, :, :]
             curr_kp2 = kp2[i, :, :]
@@ -100,7 +114,15 @@ class PoseEstimation:
             curr_des2 = des2[i, :, :]
 
             match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2)
+            print(match_kp1.shape)
+            print(match_kp2.shape)
+            
+            match_kp1_batch[i,:match_kp1.shape[1],:]=match_kp1[0,:,:]
+            match_kp2_batch[i,:match_kp2.shape[1],:]=match_kp2[0,:,:]
+            match_weights[i,:match_kp1.shape[1]]=1
             ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
+            print(ess_mat[0,:,:])
+
             if self.epipolar_distance:
                 distances = kornia.geometry.symmetrical_epipolar_distance(match_kp1, match_kp2, fun_mat)
                 mask = distances < 0.03
@@ -111,9 +133,14 @@ class PoseEstimation:
                 match_kp1 = torch.reshape(match_kp1, (1, int(match_kp1.shape[0] / 2), 2))
                 match_kp2 = torch.reshape(match_kp2, (1, int(match_kp2.shape[0] / 2), 2))
             R, t, tri_points = self.get_six_dof(ess_mat, match_kp1, match_kp2)
+            print(match_kp1_batch[0,:,:])
             outputs_R = torch.cat((outputs_R, R), dim=0)
             outputs_t = torch.cat((outputs_t, t), dim=0)
 
+        ess_mat_batch, fun_mat_batch = self.find_essential_matrix_batch(match_kp1_batch, match_kp2_batch,match_weights)
+        print(ess_mat_batch[0,:,:])
+        sys.exit(0)
+                
         if(self.visualise_images):
             if(batch_idx%250==0):
                 with torch.no_grad():
