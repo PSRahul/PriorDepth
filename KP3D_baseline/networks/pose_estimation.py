@@ -134,9 +134,9 @@ class PoseEstimation:
         outputs_R = torch.tensor([]).to(self.device)
         outputs_t = torch.tensor([]).to(self.device)
         batch_size=kp1.shape[0]
-        match_kp1_batch=torch.zeros((batch_size,600,2),device=self.device)
-        match_kp2_batch=torch.zeros((batch_size,600,2),device=self.device)
-        match_weights=torch.zeros((batch_size,600),device=self.device)
+        match_kp1_batch=torch.zeros((batch_size,450,2),device=self.device)
+        match_kp2_batch=torch.zeros((batch_size,450,2),device=self.device)
+        match_weights=torch.zeros((batch_size,450),device=self.device)
 
         for i in range(kp1.shape[0]):
             curr_kp1 = kp1[i, :, :]
