@@ -157,7 +157,7 @@ class PoseEstimation:
             distances = kornia.geometry.symmetrical_epipolar_distance(match_kp1_batch, match_kp2_batch, fun_mat_batch)
             mask = distances < 0.03
             mask_org=mask
-            print("Masks shape",mask.shape)
+            #print("Masks shape",mask.shape)
             mask = torch.stack((mask, mask), dim=-1)
             match_kp1_batch[mask==False]=0
             match_kp2_batch[mask==False]=0
