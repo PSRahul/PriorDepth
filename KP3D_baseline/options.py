@@ -25,15 +25,15 @@ class KP3DOptions:
                                  #default=os.path.join(file_dir,"kitti_data")
                                  #default=os.path.join(file_dir,"../../datasets/kitti_data"))
                                  #default=os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/", "kitti_data"))
-                                 #default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
-                                 default="/home/ubuntu/PriorDepth/datasets/kitti_data/")
+                                 default=os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/kitti_data/"))
+                                 #default="/home/ubuntu/PriorDepth/datasets/kitti_data/")
 
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
                                  #default=os.path.join(os.path.expanduser("~"), "tmp"))
-                                 default="/home/ubuntu/PriorDepth/KP3D_exp_logs/"+str(date_time))
-                                 #default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth_Phase3/kp3d_logs/"+str(date_time))
+                                 #default="/home/ubuntu/PriorDepth/KP3D_exp_logs/"+str(date_time))
+                                 default="/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth_Phase3/kp3d_logs/"+str(date_time))
 
         # TRAINING options
         self.parser.add_argument("--model_name",
@@ -87,7 +87,7 @@ class KP3DOptions:
                                  default=100.0)
         self.parser.add_argument("--use_stereo",
                                  help="if set, uses stereo pair for training",
-                                 action="storef_true")
+                                 action="store_true")
         self.parser.add_argument("--frame_ids",
                                  nargs="+",
                                  type=int,
