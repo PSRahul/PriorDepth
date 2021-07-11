@@ -119,13 +119,42 @@ class Trainer:
             "de/abs_rel", "de/sq_rel", "de/rms", "de/log_rms", "da/a1", "da/a2", "da/a3"]
         print('Trainer is created successfully.')
 
+    def set_train(self):
+        """Convert all models to training mode
+        """
+        self.model.depth_encoder.train()
+        self.model.depth_decoder.train()
+        self.model.keypoint_net.train()
+
+        if self.opt.freeze_kp2d:
+            for param in self.model.keypoint_net.parameters():
+                param.requires_grad = False
+
+        if self.opt.use_posenet_for_3dwarping:
+            self.model.pose_encoder.train()
+            self.model.pose_decoder.train()
+            for param in self.model.pose_encoder.parameters():
+                param.requires_grad = False
+            for param in self.model.pose_decoder.parameters():
+                param.requires_grad = False
+
+    def set_eval(self):
+        """Convert all models to testing/evaluation mode
+        """
+        self.model.depth_encoder.eval()
+        self.model.depth_decoder.eval()
+        self.model.keypoint_net.eval()
+        if self.opt.use_posenet_for_3dwarping:
+            self.model.pose_encoder.eval()
+            self.model.pose_decoder.eval()
+
     def train(self):
         print('Training starts!')
         self.epoch = 0
         self.step = 0
         self.start_time = time.time()
         self.save_model()
-        self.val()
+        #self.val()
         for self.epoch in range(self.opt.num_epochs):
             self.run_epoch()
             if(self.opt.visualise_images):
@@ -136,14 +165,18 @@ class Trainer:
                 self.save_model()
 
     def run_epoch(self):
-        self.model.train()
+        #self.model.train()
+        self.model_lr_scheduler.step()
+        print("Training")
+        self.set_train()
+
         for batch_idx, inputs in enumerate(self.train_loader):
             before_op_time = time.time()
             outputs, losses = self.process_batch(inputs,batch_idx)
             self.model_optimizer.zero_grad()
             losses["loss"].backward()
             self.model_optimizer.step()
-            self.model_lr_scheduler.step()
+            #self.model_lr_scheduler.step()
 
             duration = time.time() - before_op_time
 
@@ -198,7 +231,7 @@ class Trainer:
     def val(self):
         """Validate the model on a single minibatch
                """
-        self.model.eval()
+        self.set_eval()
         try:
             inputs = self.val_iter.next()
         except StopIteration:
@@ -278,6 +311,19 @@ class Trainer:
                 else:
                     # save both images, and do min all at once below
                     identity_reprojection_loss = identity_reprojection_losses
+            elif self.opt.predictive_mask:
+                # use the predicted mask
+                mask = outputs["predictive_mask"]["disp", scale]
+                if not self.opt.v1_multiscale:
+                    mask = F.interpolate(
+                        mask, [self.opt.height, self.opt.width],
+                        mode="bilinear", align_corners=False)
+
+                reprojection_losses *= mask
+
+                # add a loss pushing mask to 1 (using nn.BCELoss for stability)
+                weighting_loss = 0.2 * nn.BCELoss()(mask, torch.ones(mask.shape).cuda())
+                loss += weighting_loss.mean()
 
             if self.opt.avg_reprojection:
                 reprojection_loss = reprojection_losses.mean(1, keepdim=True)
@@ -315,8 +361,8 @@ class Trainer:
             total_loss += loss
             losses["loss/{}".format(scale)] = loss
 
-            total_loss /= self.num_scales
-            losses["loss"] = total_loss
+        total_loss /= self.num_scales
+        losses["loss"] = total_loss
         return losses
 
     def compute_reprojection_loss(self, pred, target):
