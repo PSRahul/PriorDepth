@@ -158,11 +158,12 @@ class PoseEstimation:
         if self.epipolar_distance:
             distances = kornia.geometry.symmetrical_epipolar_distance(match_kp1_batch, match_kp2_batch, fun_mat_batch)
             mask = distances < 0.03
-            num_nonzero = np.count_nonzero(mask.cpu())
-            num_nonzeros.append(num_nonzero)
-            mask = torch.stack((mask, mask), dim=-1)
-            if num_nonzero > max_num_kps:
-                max_num_kps = num_nonzero
+            for i in range(kp1.shape[0]):
+                nonzero_i = np.count_nonzero(mask[i].cpu())
+                num_nonzeros.append(nonzero_i)
+                if nonzero_i > max_num_kps:
+                    max_num_kps = nonzero_i
+            #mask = torch.stack((mask, mask), dim=-1)
             match_kp1_batch[mask==False]=0
             match_kp2_batch[mask==False]=0
             #print("KP Shape",match_kp1_batch.shape)
