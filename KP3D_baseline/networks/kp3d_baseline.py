@@ -46,14 +46,14 @@ class KP3D_Baseline(nn.Module):
             self.depth_encoder.to(device)
             self.depth_decoder.to(device)
         #self.keypoint_net =  KeypointResnet()
-        self.keypoint_net =  KeypointNet()
+        self.keypoint_net = KeypointNet()
         
         if (self.opt.kp2d_initial_ckpt!="None"):
             print("Using pretrained Model for KP2D",self.opt.kp2d_initial_ckpt)
             checkpoint = torch.load(self.opt.kp2d_initial_ckpt, map_location=device)
             self.keypoint_net.load_state_dict(checkpoint['state_dict'])
 
-        if(self.opt.freeze_kp2d):
+        if self.opt.freeze_kp2d:
             for param in self.keypoint_net.parameters():
                 param.requires_grad = False    
 
@@ -63,22 +63,21 @@ class KP3D_Baseline(nn.Module):
             #pose_encoder_path = os.path.join(opt.load_weights_folder, "pose_encoder.pth")
             #pose_decoder_path = os.path.join(opt.load_weights_folder, "pose.pth")
 
-            self.pose_encoder = ResnetEncoder(18, True,2)
-            self.pose_encoder.load_state_dict(torch.load("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth_Phase3/priordepth/KP3D_baseline/trained_models/pose_encoder.pth"))
+            self.pose_encoder = ResnetEncoder(18, True, 2)
+            self.pose_encoder.load_state_dict(torch.load("trained_models/pose_encoder.pth"))
+            self.pose_encoder.to(device)
 
             self.pose_decoder = PoseDecoder(self.pose_encoder.num_ch_enc, 1, 2)
-            self.pose_decoder.load_state_dict(torch.load("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth_Phase3/priordepth/KP3D_baseline/trained_models/pose.pth"))
+            self.pose_decoder.load_state_dict(torch.load("trained_models/pose.pth"))
+            self.pose_decoder.to(device)
 
-            self.pose_encoder.cuda()
-            self.pose_encoder.eval()
-            self.pose_decoder.cuda()
-            self.pose_decoder.eval()
-
+            # self.pose_encoder.cuda()
+            # self.pose_encoder.eval()
+            # self.pose_decoder.cuda()
+            # self.pose_decoder.eval()
 
             print("Loaded PoseNet")
 
-
-        
         #for param in self.depth_encoder.parameters():
         #    param.requires_grad = False
 
@@ -194,11 +193,11 @@ class KP3D_Baseline(nn.Module):
         if self.use_pnp:
             _, depth = disp_to_depth(disp_outputs[("disp", 0)], self.opt.min_depth, self.opt.max_depth)
 
-            R_t1, t_t1 = self.pose_estimator.get_pose_pnp(depth, input_image["color_aug", 0, 0], input_image["color_aug", 1, 0],
+            R_t1, t_t1 = self.pose_estimator.get_pose_pnp_batch(depth, input_image["color_aug", 0, 0], input_image["color_aug", 1, 0],
                                                       kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
                                                       kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
                                                       epoch, batch_idx)
-            R_t2, t_t2 = self.pose_estimator.get_pose_pnp(depth, input_image["color_aug", 0, 0], input_image["color_aug", -1, 0],
+            R_t2, t_t2 = self.pose_estimator.get_pose_pnp_batch(depth, input_image["color_aug", 0, 0], input_image["color_aug", -1, 0],
                                                       kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
                                                       kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
                                                       epoch, batch_idx)
