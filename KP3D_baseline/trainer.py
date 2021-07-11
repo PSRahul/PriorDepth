@@ -166,7 +166,7 @@ class Trainer:
 
     def run_epoch(self):
         #self.model.train()
-        self.model_lr_scheduler.step()
+        #self.model_lr_scheduler.step()
         print("Training")
         self.set_train()
 
@@ -176,7 +176,7 @@ class Trainer:
             self.model_optimizer.zero_grad()
             losses["loss"].backward()
             self.model_optimizer.step()
-            #self.model_lr_scheduler.step()
+            self.model_lr_scheduler.step()
 
             duration = time.time() - before_op_time
 
@@ -537,7 +537,8 @@ class Trainer:
                 T = torch.zeros((self.opt.batch_size, 4, 4)).to(self.device)
                 if frame_id == 1:
                     T[:, :3, :3] = outputs['R_t1']
-                    T[:, :3, 3] = outputs['t_t1'].transpose(1, 2)[:, 0, :] * mean_inv_depth
+                    #T[:, :3, 3] = outputs['t_t1'].transpose(1, 2)[:, 0, :] * mean_inv_depth
+                    T[:, :3, 3] = outputs['t_t1'].transpose(1, 2)[:, 0, :]
                     T[:, 3, 3] = 1
                     
                     if(self.opt.use_posenet_for_3dwarping):
@@ -545,7 +546,8 @@ class Trainer:
                     
                 elif frame_id == -1:
                     T[:, :3, :3] = outputs['R_t2']
-                    T[:, :3, 3] = outputs['t_t2'].transpose(1, 2)[:, 0, :] * mean_inv_depth
+                    #T[:, :3, 3] = outputs['t_t2'].transpose(1, 2)[:, 0, :] * mean_inv_depth
+                    T[:, :3, 3] = outputs['t_t2'].transpose(1, 2)[:, 0, :]
                     T[:, 3, 3] = 1
 
                     if(self.opt.use_posenet_for_3dwarping):

@@ -134,9 +134,9 @@ class PoseEstimation:
         outputs_R = torch.tensor([]).to(self.device)
         outputs_t = torch.tensor([]).to(self.device)
         batch_size=kp1.shape[0]
-        match_kp1_batch=torch.zeros((batch_size,400,2),device=self.device)
-        match_kp2_batch=torch.zeros((batch_size,400,2),device=self.device)
-        match_weights=torch.zeros((batch_size,400),device=self.device)
+        match_kp1_batch=torch.zeros((batch_size,600,2),device=self.device)
+        match_kp2_batch=torch.zeros((batch_size,600,2),device=self.device)
+        match_weights=torch.zeros((batch_size,600),device=self.device)
 
         for i in range(kp1.shape[0]):
             curr_kp1 = kp1[i, :, :]
@@ -145,7 +145,7 @@ class PoseEstimation:
             curr_des2 = des2[i, :, :]
 
             match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2)
-            ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
+            #ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
 
             match_kp1_batch[i,:match_kp1.shape[1],:]=match_kp1[0,:,:]
             match_kp2_batch[i,:match_kp2.shape[1],:]=match_kp2[0,:,:]
@@ -153,15 +153,35 @@ class PoseEstimation:
           
         ess_mat_batch, fun_mat_batch = self.find_essential_matrix_batch(match_kp1_batch, match_kp2_batch,match_weights)
 
+        max_num_kps = 0
+        num_nonzeros = []
         if self.epipolar_distance:
             distances = kornia.geometry.symmetrical_epipolar_distance(match_kp1_batch, match_kp2_batch, fun_mat_batch)
             mask = distances < 0.03
+            num_nonzero = np.count_nonzero(mask.cpu())
+            num_nonzeros.append(num_nonzero)
             mask = torch.stack((mask, mask), dim=-1)
+            if num_nonzero > max_num_kps:
+                max_num_kps = num_nonzero
             match_kp1_batch[mask==False]=0
             match_kp2_batch[mask==False]=0
             #print("KP Shape",match_kp1_batch.shape)
 
-        outputs_R, outputs_t, tri_points =kornia.geometry.motion_from_essential_choose_solution(ess_mat_batch, self.K1, self.K2, match_kp1_batch, match_kp2_batch)
+        match_kp1 = torch.zeros((batch_size, max_num_kps, 2), device=self.device)
+        match_kp2 = torch.zeros((batch_size, max_num_kps, 2), device=self.device)
+        match_mask = torch.zeros((batch_size, max_num_kps), dtype=torch.bool, device=self.device)
+
+        match_kp1[:, :max_num_kps, :] = match_kp1_batch[0, :max_num_kps, :]
+        match_kp2[:, :max_num_kps, :] = match_kp2_batch[0, :max_num_kps, :]
+        for i in range(len(num_nonzeros)):
+            num_ones = num_nonzeros[i]
+            match_mask[:, :num_ones] = 1
+        outputs_R, outputs_t, tri_points =kornia.geometry.motion_from_essential_choose_solution(ess_mat_batch,
+                                                                                                self.K1,
+                                                                                                self.K2,
+                                                                                                match_kp1,
+                                                                                                match_kp2,
+                                                                                                match_mask)
                 
         if(self.visualise_images):
             if(batch_idx%250==0):

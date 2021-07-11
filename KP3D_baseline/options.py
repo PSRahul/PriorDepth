@@ -146,13 +146,13 @@ class KP3DOptions:
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
-                                 default=1)
+                                 default=0)
 
         self.parser.add_argument("--kp_training_3dwarp_previous",
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
-                                 default=1)
+                                 default=0)
        
         self.parser.add_argument("--kp_training_3dwarp_start_epoch",
                                  nargs="?",
@@ -295,7 +295,7 @@ class KP3DOptions:
         self.parser.add_argument("--use_posenet_for_3dwarping",
                                  type=int,
                                  help="switch warping debug mode",
-                                 default=1)
+                                 default=0)
 
     def parse(self):
         self.options = self.parser.parse_args()
