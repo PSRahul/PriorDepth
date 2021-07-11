@@ -134,9 +134,9 @@ class PoseEstimation:
         outputs_R = torch.tensor([]).to(self.device)
         outputs_t = torch.tensor([]).to(self.device)
         batch_size=kp1.shape[0]
-        match_kp1_batch=torch.zeros((batch_size,300,2),device=self.device)
-        match_kp2_batch=torch.zeros((batch_size,300,2),device=self.device)
-        match_weights=torch.zeros((batch_size,300),device=self.device)
+        match_kp1_batch=torch.zeros((batch_size,400,2),device=self.device)
+        match_kp2_batch=torch.zeros((batch_size,400,2),device=self.device)
+        match_weights=torch.zeros((batch_size,400),device=self.device)
 
         for i in range(kp1.shape[0]):
             curr_kp1 = kp1[i, :, :]
@@ -161,7 +161,7 @@ class PoseEstimation:
             match_kp2_batch[mask==False]=0
             #print("KP Shape",match_kp1_batch.shape)
 
-            outputs_R, outputs_t, tri_points =kornia.geometry.motion_from_essential_choose_solution(ess_mat_batch, self.K1, self.K2, match_kp1_batch, match_kp2_batch)
+        outputs_R, outputs_t, tri_points =kornia.geometry.motion_from_essential_choose_solution(ess_mat_batch, self.K1, self.K2, match_kp1_batch, match_kp2_batch)
                 
         if(self.visualise_images):
             if(batch_idx%250==0):
