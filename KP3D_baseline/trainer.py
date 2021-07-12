@@ -528,9 +528,9 @@ class Trainer:
             _, depth = disp_to_depth(disp, self.opt.min_depth, self.opt.max_depth)
 
             outputs[("depth", 0, scale)] = depth
-            inv_depth = 1 / depth
-            mean_inv_depth = inv_depth.mean(3, True).mean(2, True)
-            mean_inv_depth = torch.reshape(mean_inv_depth, (mean_inv_depth.shape[0], 1))
+            # inv_depth = 1 / depth
+            # mean_inv_depth = inv_depth.mean(3, True).mean(2, True)
+            # mean_inv_depth = torch.reshape(mean_inv_depth, (mean_inv_depth.shape[0], 1))
 
             # where we warp image!
             for i, frame_id in enumerate(self.opt.frame_ids[1:]):
