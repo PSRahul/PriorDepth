@@ -44,15 +44,27 @@ class PoseEstimation:
 
         return good_matches, good_match_idx
 
+    def good_matches_batch(self, match_dist, match_idx, threshold=150):
+        mask = match_dist < threshold
+        nonzero_mask = torch.nonzero(mask)
+        good_matches = match_dist[nonzero_mask[nonzero_mask[:, 1] == 0][:, 0], :]
+        good_match_idx = match_idx[nonzero_mask[nonzero_mask[:, 1] == 0][:, 0], :]
+        return good_matches, good_match_idx
+
     def match_keypoints(self, kp1, kp2, des1, des2):
         match_dist, match_idx = kornia.feature.match_mnn(des1, des2)
-        match_dist, match_idx = self.good_matches(match_dist, match_idx)
+        match_dist, match_idx = self.good_matches_batch(match_dist, match_idx)
 
-        match_kp1 = kp1[match_idx[:, 0]]
-        match_kp2 = kp2[match_idx[:, 1]]
+        match_kp1 = torch.zeros((1, match_idx.shape[0], 2),device=self.device)
+        match_kp2 = torch.zeros((1, match_idx.shape[0], 2),device=self.device)
 
-        match_kp1 = torch.unsqueeze(match_kp1, dim=0)
-        match_kp2 = torch.unsqueeze(match_kp2, dim=0)
+        match_kp1[:, :, :] = kp1[match_idx[:, 0]]
+        match_kp2[:, :, :] = kp2[match_idx[:, 1]]
+        #match_kp1 = kp1[match_idx[:, 0]]
+        #match_kp2 = kp2[match_idx[:, 1]]
+
+        #match_kp1 = torch.unsqueeze(match_kp1, dim=0)
+        #match_kp2 = torch.unsqueeze(match_kp2, dim=0)
         return match_kp1, match_kp2
 
     def find_essential_matrix(self, match_kp1, match_kp2):
@@ -134,9 +146,9 @@ class PoseEstimation:
         outputs_R = torch.tensor([]).to(self.device)
         outputs_t = torch.tensor([]).to(self.device)
         batch_size=kp1.shape[0]
-        match_kp1_batch=torch.zeros((batch_size,600,2),device=self.device)
-        match_kp2_batch=torch.zeros((batch_size,600,2),device=self.device)
-        match_weights=torch.zeros((batch_size,600),device=self.device)
+        match_kp1_batch=torch.zeros((batch_size,500,2),device=self.device)
+        match_kp2_batch=torch.zeros((batch_size,500,2),device=self.device)
+        match_weights=torch.zeros((batch_size,500),device=self.device)
 
         for i in range(kp1.shape[0]):
             curr_kp1 = kp1[i, :, :]
@@ -155,14 +167,16 @@ class PoseEstimation:
 
         if self.epipolar_distance:
             distances = kornia.geometry.symmetrical_epipolar_distance(match_kp1_batch, match_kp2_batch, fun_mat_batch)
-            mask = distances < 0.03
+            mask = distances[:, :] < 0.03
             # for i in range(kp1.shape[0]):
             #     nonzero_i = np.count_nonzero(mask[i].cpu())
             #     num_nonzeros.append(nonzero_i)
             #     if nonzero_i > max_num_kps:
             #         max_num_kps = nonzero_i
-            num_nonzeros = np.count_nonzero(mask.cpu(), axis=1)
-            max_num_kps = np.max(num_nonzeros)  # TODO: check for torch count_nonzero for cuda, etc
+            #num_nonzeros = np.count_nonzero(mask.cpu(), axis=1)
+            #max_num_kps = np.max(num_nonzeros)  # TODO: check for torch count_nonzero for cuda, etc
+            num_nonzeros = torch.count_nonzero(mask, dim=1)
+            max_num_kps = torch.max(num_nonzeros)
             match_kp1_batch[mask==False]=0
             match_kp2_batch[mask==False]=0
 
@@ -171,8 +185,11 @@ class PoseEstimation:
             match_mask = torch.zeros((batch_size, max_num_kps), dtype=torch.bool, device=self.device)
 
             for i in range(match_kp1_batch.shape[0]):
-                match_kp1[i, :num_nonzeros[i], :] = match_kp1_batch[i, torch.nonzero(mask)[torch.nonzero(mask)[:, 0] == i][:, 1].cpu(), :]
-                match_kp2[i, :num_nonzeros[i], :] = match_kp2_batch[i, torch.nonzero(mask)[torch.nonzero(mask)[:, 0] == i][:, 1].cpu(), :]
+                nonzero_mask = torch.nonzero(mask)
+                #match_kp1[i, :num_nonzeros[i], :] = match_kp1_batch[i, torch.nonzero(mask)[torch.nonzero(mask)[:, 0] == i][:, 1], :]
+                match_kp1[i, :num_nonzeros[i], :] = match_kp1_batch[i, nonzero_mask[nonzero_mask[:, 0] == i][:, 1], :]
+                #match_kp2[i, :num_nonzeros[i], :] = match_kp2_batch[i, torch.nonzero(mask)[torch.nonzero(mask)[:, 0] == i][:, 1], :]
+                match_kp2[i, :num_nonzeros[i], :] = match_kp2_batch[i, nonzero_mask[nonzero_mask[:, 0] == i][:, 1], :]
                 match_mask[i, :num_nonzeros[i]] = 1
 
         outputs_R, outputs_t, tri_points =kornia.geometry.motion_from_essential_choose_solution(ess_mat_batch,
