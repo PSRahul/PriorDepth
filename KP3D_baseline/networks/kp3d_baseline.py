@@ -149,7 +149,7 @@ class KP3D_Baseline(nn.Module):
         #plt.imsave("input_wrapped.png",input_image["color_aug_wrapped_kp2d", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
         #print("epoch",epoch)
 
-        kp2d_output1 = self.keypoint_net(input_image["color_aug", 0, 0])
+        kp2d_output1 = self.keypoint_net(input_image["color", 0, 0])
         if (epoch>=self.opt.kp_training_2dwarp_start_epoch):
             if self.opt.kp_training_2dwarp:
                 source_score, source_uv_pred, source_feat=self.keypoint_net(input_image["color_aug_wrapped_kp2d", 0, 0])
@@ -164,7 +164,7 @@ class KP3D_Baseline(nn.Module):
 
         kp2d_output1 = self.batch_reshape_kp2d_preds(kp2d_output1, 1)
 
-        kp2d_output2 = self.keypoint_net(input_image["color_aug", 1, 0])
+        kp2d_output2 = self.keypoint_net(input_image["color", 1, 0])
         
         if (epoch>=self.opt.kp_training_3dwarp_start_epoch):
             if self.opt.kp_training_3dwarp_next:
@@ -175,7 +175,7 @@ class KP3D_Baseline(nn.Module):
             
         kp2d_output2 = self.batch_reshape_kp2d_preds(kp2d_output2, 2)
 
-        kp2d_output3 = self.keypoint_net(input_image["color_aug", -1, 0])
+        kp2d_output3 = self.keypoint_net(input_image["color", -1, 0])
 
         if (epoch>=self.opt.kp_training_3dwarp_start_epoch):
             if self.opt.kp_training_3dwarp_previous:
