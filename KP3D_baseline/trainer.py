@@ -194,7 +194,7 @@ class Trainer:
 
     def preprocess_kp2d_batch(self,inputs):
         #print(inputs[('color_aug', 0, 0)].shape)
-        image_inputs_kp2d=inputs[('color_aug', 0, 0)]
+        image_inputs_kp2d=inputs[('color', 0, 0)]
         image_inputs_kp2d_wrapped=torch.zeros_like(image_inputs_kp2d)
         homography=torch.zeros((self.opt.batch_size,3,3))
         for i in range(self.opt.batch_size):
