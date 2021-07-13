@@ -193,32 +193,32 @@ class KP3D_Baseline(nn.Module):
         if self.use_pnp:
             _, depth = disp_to_depth(disp_outputs[("disp", 0)], self.opt.min_depth, self.opt.max_depth)
 
-            R_t1, t_t1 = self.pose_estimator.get_pose_pnp_batch(depth, input_image["color_aug", 0, 0], input_image["color_aug", 1, 0],
+            R_t1, t_t1 = self.pose_estimator.get_pose_pnp_batch(depth, input_image["color", 0, 0], input_image["color", 1, 0],
                                                       kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
                                                       kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
                                                       epoch, batch_idx)
-            R_t2, t_t2 = self.pose_estimator.get_pose_pnp_batch(depth, input_image["color_aug", 0, 0], input_image["color_aug", -1, 0],
+            R_t2, t_t2 = self.pose_estimator.get_pose_pnp_batch(depth, input_image["color", 0, 0], input_image["color", -1, 0],
                                                       kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
                                                       kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
                                                       epoch, batch_idx)
             t_t1 = torch.unsqueeze(t_t1, dim=2)
             t_t2 = torch.unsqueeze(t_t2, dim=2)
         else:
-            R_t1, t_t1 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", 1, 0],
+            R_t1, t_t1 = self.pose_estimator.get_pose(input_image["color", 0, 0],input_image["color", 1, 0],
                                                 kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
                                                 kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
                                                 epoch,batch_idx)
 
             #print("R_t1",R_t1.shape)
             #print("t_t1",t_t1.shape)
-            R_t2, t_t2 = self.pose_estimator.get_pose(input_image["color_aug", 0, 0],input_image["color_aug", -1, 0],
+            R_t2, t_t2 = self.pose_estimator.get_pose(input_image["color", 0, 0],input_image["color", -1, 0],
                                                 kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
                                                 kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
                                                 epoch,batch_idx)
 
         if self.opt.use_posenet_for_3dwarping:
            
-            pose_feats = {f_i: input_image["color_aug", f_i, 0] for f_i in self.opt.frame_ids}
+            pose_feats = {f_i: input_image["color", f_i, 0] for f_i in self.opt.frame_ids}
 
             for f_i in self.opt.frame_ids[1:]:
                 if f_i != "s":
