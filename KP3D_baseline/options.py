@@ -134,7 +134,7 @@ class KP3DOptions:
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
-                                 default=1)
+                                 default=0)
 
         self.parser.add_argument("--kp_training_2dwarp_start_epoch",
                                  nargs="?",
