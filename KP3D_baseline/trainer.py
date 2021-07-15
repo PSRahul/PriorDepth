@@ -45,8 +45,8 @@ class Trainer:
                                [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
         #fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
         #fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/splits", self.opt.split, "{}_files.txt")
-        #fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
-        fpath = os.path.join(os.path.dirname(__file__), "datasets/splits", self.opt.split, "{}_files.txt")
+        fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
+        #fpath = os.path.join(os.path.dirname(__file__), "datasets/splits", self.opt.split, "{}_files.txt")
         print("Using KITTI splits in",fpath)
         #fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
         
@@ -225,6 +225,9 @@ class Trainer:
         
         plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
         plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_wrapped_next_posenet.png",outputs["color_posenet", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_wrapped_previous_posenet.png",outputs["color_posenet", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+
 
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
@@ -543,7 +546,7 @@ class Trainer:
                     T[:, 3, 3] = 1
                     
                     if(self.opt.use_posenet_for_3dwarping):
-                        T = outputs[("cam_T_cam", 0, frame_id)]
+                        T1 = outputs[("cam_T_cam", 0, frame_id)]
                     
                 elif frame_id == -1:
                     T[:, :3, :3] = outputs['R_t2']
@@ -552,7 +555,7 @@ class Trainer:
                     T[:, 3, 3] = 1
 
                     if(self.opt.use_posenet_for_3dwarping):
-                        T = outputs[("cam_T_cam", 0, frame_id)]
+                        T1= outputs[("cam_T_cam", 0, frame_id)]
                     
 
                 cam_points = self.backproject_depth[source_scale](
@@ -563,6 +566,18 @@ class Trainer:
                 outputs[("sample", frame_id, scale)] = pix_coords
 
                 outputs[("color", frame_id, scale)] = F.grid_sample(
+                    inputs[("color", frame_id, source_scale)],
+                    outputs[("sample", frame_id, scale)],
+                    padding_mode="border")
+
+                cam_points = self.backproject_depth[source_scale](
+                    depth, inputs[("inv_K", source_scale)])
+                pix_coords = self.project_3d[source_scale](
+                    cam_points, inputs[("K", source_scale)], T1)
+
+                outputs[("sample", frame_id, scale)] = pix_coords
+
+                outputs[("color_posenet", frame_id, scale)] = F.grid_sample(
                     inputs[("color", frame_id, source_scale)],
                     outputs[("sample", frame_id, scale)],
                     padding_mode="border")

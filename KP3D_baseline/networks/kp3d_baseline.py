@@ -246,14 +246,14 @@ class KP3D_Baseline(nn.Module):
         if self.use_pnp:
             _, depth = disp_to_depth(disp_outputs[("disp", 0)], self.opt.min_depth, self.opt.max_depth)
 
-            R_t1, t_t1 = self.pose_estimator.get_pose_pnp_batch(depth, input_image["color", 0, 0], input_image["color", 1, 0],
-                                                      kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
-                                                      kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
-                                                      epoch, batch_idx)
-            R_t2, t_t2 = self.pose_estimator.get_pose_pnp_batch(depth, input_image["color", 0, 0], input_image["color", -1, 0],
-                                                      kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
-                                                      kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
-                                                      epoch, batch_idx)
+            R_t1, t_t1 = self.pose_estimator.get_pose_pnp(depth, input_image["color", 0, 0], input_image["color", 1, 0],
+                                                      kp2d_output1[1], kp2d_output2[1],
+                                                      kp2d_output1[2], kp2d_output2[2],
+                                                      epoch, batch_idx,self.training)
+            R_t2, t_t2 = self.pose_estimator.get_pose_pnp(depth, input_image["color", 0, 0], input_image["color", -1, 0],
+                                                      kp2d_output1[1], kp2d_output3[1],
+                                                      kp2d_output1[2], kp2d_output3[2],
+                                                      epoch, batch_idx,self.training)
             t_t1 = torch.unsqueeze(t_t1, dim=2)
             t_t2 = torch.unsqueeze(t_t2, dim=2)
         else:

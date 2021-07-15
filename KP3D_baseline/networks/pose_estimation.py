@@ -253,7 +253,7 @@ class PoseEstimation:
         kp3d = torch.cat((kp3d, torch.unsqueeze(depth_vals[:, :, 0], dim=2)), dim=2)
         return kp3d
 
-    def get_pose_pnp(self, depth_img, input_image_1, input_image_2, kp1, kp2, des1, des2,epoch, batch_idx):
+    def get_pose_pnp(self, depth_img, input_image_1, input_image_2, kp1, kp2, des1, des2,epoch, batch_idx,training):
         outputs_R = torch.tensor([]).to(self.device)
         outputs_t = torch.tensor([]).to(self.device)
         batch_size = kp1.shape[0]
@@ -263,7 +263,7 @@ class PoseEstimation:
             curr_des1 = des1[i, :, :]
             curr_des2 = des2[i, :, :]
             curr_depth = depth_img[i, :, :, :]
-            match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2)
+            match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2,training)
 
             ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
             if self.epipolar_distance:
@@ -276,8 +276,8 @@ class PoseEstimation:
                 match_kp1 = torch.reshape(match_kp1, (1, int(match_kp1.shape[0] / 2), 2))
                 match_kp2 = torch.reshape(match_kp2, (1, int(match_kp2.shape[0] / 2), 2))
 
-            kp3d = self.reproject_points(curr_depth, match_kp1)
-            output = perspective_n_points.efficient_pnp(kp3d, match_kp1)
+            kp3d = self.reproject_points(curr_depth, match_kp2)
+            output = perspective_n_points.efficient_pnp(kp3d, match_kp2)
 
             R = output[1]
             t = output[2]
