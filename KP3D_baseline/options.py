@@ -57,7 +57,7 @@ class KP3DOptions:
                                  choices=["kitti", "kitti_odom", "kitti_depth", "kitti_test"])
         self.parser.add_argument("--png",
                                  help="if set, trains from raw KITTI png files (instead of jpgs)",
-                                 action="store_true")
+                                 action="store_false")
         self.parser.add_argument("--height",
                                  type=int,
                                  help="input image height",
@@ -122,13 +122,13 @@ class KP3DOptions:
                                  default=0)
         self.parser.add_argument("--epipolar_distance",
                                  help="if set, use epipolar distance for threshold",
-                                 action="store_true")
+                                 action="store_false")
 
         self.parser.add_argument("--freeze_kp2d",
                                  nargs="?",
                                  type=int,
                                  help="Set to 0 to disable KP training",
-                                 default=0)
+                                 default=1)
 
         self.parser.add_argument("--kp_training_2dwarp",
                                  nargs="?",
@@ -170,7 +170,7 @@ class KP3DOptions:
         self.parser.add_argument("--batch_size",
                                  type=int,
                                  help="batch size",
-                                 default=8) # 8
+                                 default=16) # 8
         self.parser.add_argument("--learning_rate",
                                  type=float,
                                  help="learning rate",
@@ -182,7 +182,7 @@ class KP3DOptions:
         self.parser.add_argument("--scheduler_step_size",
                                  type=int,
                                  help="step size of the scheduler",
-                                 default=15)
+                                 default=5)
 
         # ABLATION options
         self.parser.add_argument("--v1_multiscale",

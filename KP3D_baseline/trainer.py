@@ -45,8 +45,8 @@ class Trainer:
                                [0, 0, 0, 1]]]).to("cpu" if self.opt.no_cuda else "cuda")
         #fpath = os.path.join(os.path.dirname(__file__), "../monodepth2/splits", self.opt.split, "{}_files.txt")
         #fpath = os.path.join("/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/MD2/splits", self.opt.split, "{}_files.txt")
-        #fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
-        fpath = os.path.join(os.path.dirname(__file__), "datasets/splits", self.opt.split, "{}_files.txt")
+        fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
+        #fpath = os.path.join(os.path.dirname(__file__), "datasets/splits", self.opt.split, "{}_files.txt")
         print("Using KITTI splits in",fpath)
         #fpath = os.path.join("/media/psrahul/My_Drive/my_files/Academic/TUM/Assignments/AT3DCV/PriorDepth/Git_Baseline/", "splits", self.opt.split, "{}_files.txt")
         
@@ -154,7 +154,7 @@ class Trainer:
         self.step = 0
         self.start_time = time.time()
         self.save_model()
-        #self.val()
+        
         for self.epoch in range(self.opt.num_epochs):
             self.run_epoch()
             if(self.opt.visualise_images):
@@ -168,6 +168,7 @@ class Trainer:
         #self.model.train()
         #self.model_lr_scheduler.step()
         print("Training")
+        #self.val()
         self.set_train()
 
         for batch_idx, inputs in enumerate(self.train_loader):
@@ -188,7 +189,7 @@ class Trainer:
                 if "depth_gt" in inputs:
                    self.compute_depth_losses(inputs, outputs, losses)
                 self.log("train", inputs, outputs, losses)
-                self.val()
+                #self.val()
             self.step += 1
 
 
@@ -218,12 +219,12 @@ class Trainer:
 
         #print(outputs.keys())
         self.generate_images_pred(inputs, outputs)
-        #plt.imsave("input.png",inputs["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        #plt.imsave("input_next.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        #plt.imsave("input_previous.png",inputs["color_aug", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input.png",inputs["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_next.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_previous.png",inputs["color_aug", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
         
-        #plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        #plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
 
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
