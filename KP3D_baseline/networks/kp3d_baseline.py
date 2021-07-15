@@ -239,9 +239,9 @@ class KP3D_Baseline(nn.Module):
             
         #kp2d_output3 = self.batch_reshape_kp2d_preds(kp2d_output3, 3)
 
-        outputs.update(kp2d_output1)
-        outputs.update(kp2d_output2)
-        outputs.update(kp2d_output3)
+        #outputs.update(kp2d_output1)
+        #outputs.update(kp2d_output2)
+        #outputs.update(kp2d_output3)
 
         if self.use_pnp:
             _, depth = disp_to_depth(disp_outputs[("disp", 0)], self.opt.min_depth, self.opt.max_depth)
