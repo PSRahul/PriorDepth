@@ -72,7 +72,7 @@ class KeypointNet(torch.nn.Module):
         self.convFa = torch.nn.Sequential(torch.nn.Conv2d(c4, c5, kernel_size=3, stride=1, padding=1, bias=False), torch.nn.BatchNorm2d(c4,momentum=self.bn_momentum))
         self.convFb = torch.nn.Sequential(torch.nn.Conv2d(c5, d1, kernel_size=3, stride=1, padding=1, bias=False), torch.nn.BatchNorm2d(d1,momentum=self.bn_momentum))
         self.convFaa = torch.nn.Sequential(torch.nn.Conv2d(c4, c5, kernel_size=3, stride=1, padding=1, bias=False), torch.nn.BatchNorm2d(c5,momentum=self.bn_momentum))
-        self.convFbb = torch.nn.Conv2d(c5, 256, kernel_size=3, stride=2, padding=1) # stride = 1 # TODO: check what stride we should use?
+        self.convFbb = torch.nn.Conv2d(c5, 256, kernel_size=3, stride=1, padding=1) # stride = 1 # TODO: check what stride we should use?
 
         self.relu = torch.nn.LeakyReLU(inplace=True)
         if self.with_drop:

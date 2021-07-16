@@ -149,7 +149,22 @@ class KP3D_Baseline(nn.Module):
         #plt.imsave("input_wrapped.png",input_image["color_aug_wrapped_kp2d", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
         #print("epoch",epoch)
 
-        kp2d_output1 = self.keypoint_net(input_image["color_aug", 0, 0])
+        kp2d_output1 = self.keypoint_net(input_image["color", 0, 0])
+        score, coord, feat = kp2d_output1
+        org_shape=score.shape
+        new_shape=(org_shape[0],org_shape[2]*org_shape[3],org_shape[1])
+        #print(org_shape)
+        #rint(new_shape)
+        #print(score.shape)
+        #print(feat.shape)
+        score, coord, feat = score.permute(0,2,3,1),coord.permute(0,2,3,1),feat.permute(0,2,3,1)
+        if(self.training==0): 
+            score, coord, feat = score.reshape((new_shape[0],new_shape[1])),coord.reshape((new_shape[0],new_shape[1],2)),feat.reshape((new_shape[0],new_shape[1],256))
+        else:
+            score, coord, feat = score.reshape((new_shape[0],new_shape[1])),coord.reshape((new_shape[0],new_shape[1],2)),feat.reshape((new_shape[0],new_shape[1]*4,256))
+        
+        kp2d_output1=[score,coord,feat]
+        
         if (epoch>=self.opt.kp_training_2dwarp_start_epoch):
             if self.opt.kp_training_2dwarp:
                 source_score, source_uv_pred, source_feat=self.keypoint_net(input_image["color_aug_wrapped_kp2d", 0, 0])
@@ -162,9 +177,30 @@ class KP3D_Baseline(nn.Module):
                 outputs["target_feat"] = target_feat
 
 
-        kp2d_output1 = self.batch_reshape_kp2d_preds(kp2d_output1, 1)
+        #kp2d_output1 = self.batch_reshape_kp2d_preds(kp2d_output1, 1)
 
-        kp2d_output2 = self.keypoint_net(input_image["color_aug", 1, 0])
+        kp2d_output2 = self.keypoint_net(input_image["color", 1, 0])
+
+        score, coord, feat = kp2d_output2
+        #print(coord.shape)
+        #print(feat.shape)
+        #print(score.shape)
+        #print(coord[0,:,:4,:4])
+        org_shape=score.shape
+        new_shape=(org_shape[0],org_shape[2]*org_shape[3],org_shape[1])
+        score, coord, feat = score.permute(0,2,3,1),coord.permute(0,2,3,1),feat.permute(0,2,3,1)
+        
+        if(self.training==0): 
+            score, coord, feat = score.reshape((new_shape[0],new_shape[1])),coord.reshape((new_shape[0],new_shape[1],2)),feat.reshape((new_shape[0],new_shape[1],256))
+        else:
+            score, coord, feat = score.reshape((new_shape[0],new_shape[1])),coord.reshape((new_shape[0],new_shape[1],2)),feat.reshape((new_shape[0],new_shape[1]*4,256))
+        
+
+        kp2d_output2=[score,coord,feat]
+        #print(coord[0,:16,:])
+        #print(kp2d_output2[0].shape)
+        #print(kp2d_output2[1].shape)
+        #print(kp2d_output2[2].shape)
         
         if (epoch>=self.opt.kp_training_3dwarp_start_epoch):
             if self.opt.kp_training_3dwarp_next:
@@ -173,10 +209,27 @@ class KP3D_Baseline(nn.Module):
                 outputs["source_uv_pred_next"] = source_uv_pred
                 outputs["source_feat_next"] =source_feat
             
-        kp2d_output2 = self.batch_reshape_kp2d_preds(kp2d_output2, 2)
+        #kp2d_output2 = self.batch_reshape_kp2d_preds(kp2d_output2, 2)
+        #print(kp2d_output2.keys())
+        #print(kp2d_output2['kp2_coord'].shape)
+        #print(kp2d_output2['kp2_feat'].shape)
+        #rint(kp2d_output2['kp2_score'].shape)
+      
 
-        kp2d_output3 = self.keypoint_net(input_image["color_aug", -1, 0])
+        kp2d_output3 = self.keypoint_net(input_image["color", -1, 0])
+        score, coord, feat = kp2d_output3
+        org_shape=score.shape
+        new_shape=(org_shape[0],org_shape[2]*org_shape[3],org_shape[1])
 
+        score, coord, feat = score.permute(0,2,3,1),coord.permute(0,2,3,1),feat.permute(0,2,3,1)
+        
+        if(self.training==0): 
+            score, coord, feat = score.reshape((new_shape[0],new_shape[1])),coord.reshape((new_shape[0],new_shape[1],2)),feat.reshape((new_shape[0],new_shape[1],256))
+        else:
+            score, coord, feat = score.reshape((new_shape[0],new_shape[1])),coord.reshape((new_shape[0],new_shape[1],2)),feat.reshape((new_shape[0],new_shape[1]*4,256))
+        
+        kp2d_output3=[score,coord,feat]
+        
         if (epoch>=self.opt.kp_training_3dwarp_start_epoch):
             if self.opt.kp_training_3dwarp_previous:
                 source_score, source_uv_pred, source_feat=kp2d_output3
@@ -184,41 +237,43 @@ class KP3D_Baseline(nn.Module):
                 outputs["source_uv_pred_previous"] = source_uv_pred
                 outputs["source_feat_previous"] =source_feat
             
-        kp2d_output3 = self.batch_reshape_kp2d_preds(kp2d_output3, 3)
+        #kp2d_output3 = self.batch_reshape_kp2d_preds(kp2d_output3, 3)
 
-        outputs.update(kp2d_output1)
-        outputs.update(kp2d_output2)
-        outputs.update(kp2d_output3)
+        #outputs.update(kp2d_output1)
+        #outputs.update(kp2d_output2)
+        #outputs.update(kp2d_output3)
 
         if self.use_pnp:
             _, depth = disp_to_depth(disp_outputs[("disp", 0)], self.opt.min_depth, self.opt.max_depth)
 
-            R_t1, t_t1 = self.pose_estimator.get_pose_pnp_batch(depth, input_image["color_aug", 0, 0], input_image["color_aug", 1, 0],
-                                                      kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
-                                                      kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
-                                                      epoch, batch_idx)
-            R_t2, t_t2 = self.pose_estimator.get_pose_pnp_batch(depth, input_image["color_aug", 0, 0], input_image["color_aug", -1, 0],
-                                                      kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
-                                                      kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
-                                                      epoch, batch_idx)
+            R_t1, t_t1 = self.pose_estimator.get_pose_pnp(depth, input_image["color", 0, 0], input_image["color", 1, 0],
+                                                      kp2d_output1[1], kp2d_output2[1],
+                                                      kp2d_output1[2], kp2d_output2[2],
+                                                      epoch, batch_idx,self.training)
+            R_t2, t_t2 = self.pose_estimator.get_pose_pnp(depth, input_image["color", 0, 0], input_image["color", -1, 0],
+                                                      kp2d_output1[1], kp2d_output3[1],
+                                                      kp2d_output1[2], kp2d_output3[2],
+                                                      epoch, batch_idx,self.training)
             t_t1 = torch.unsqueeze(t_t1, dim=2)
             t_t2 = torch.unsqueeze(t_t2, dim=2)
         else:
-            R_t1, t_t1 = self.pose_estimator.get_pose_batch(input_image["color_aug", 0, 0],input_image["color_aug", 1, 0],
-                                                kp2d_output1['kp1_coord'], kp2d_output2['kp2_coord'],
-                                                kp2d_output1['kp1_feat'], kp2d_output2['kp2_feat'],
-                                                epoch,batch_idx)
+        
+        
+            R_t1, t_t1 = self.pose_estimator.get_pose(input_image["color", 0, 0],input_image["color", 1, 0],
+                                                kp2d_output1[1], kp2d_output2[1],
+                                                kp2d_output1[2], kp2d_output2[2],
+                                                epoch,batch_idx,self.training)
 
             #print("R_t1",R_t1.shape)
             #print("t_t1",t_t1.shape)
-            R_t2, t_t2 = self.pose_estimator.get_pose_batch(input_image["color_aug", 0, 0],input_image["color_aug", -1, 0],
-                                                kp2d_output1['kp1_coord'], kp2d_output3['kp3_coord'],
-                                                kp2d_output1['kp1_feat'], kp2d_output3['kp3_feat'],
-                                                epoch,batch_idx)
+            R_t2, t_t2 = self.pose_estimator.get_pose(input_image["color", 0, 0],input_image["color", -1, 0],
+                                                kp2d_output1[1], kp2d_output3[1],
+                                                kp2d_output1[2], kp2d_output3[2],
+                                                epoch,batch_idx,self.training)
 
         if self.opt.use_posenet_for_3dwarping:
            
-            pose_feats = {f_i: input_image["color_aug", f_i, 0] for f_i in self.opt.frame_ids}
+            pose_feats = {f_i: input_image["color", f_i, 0] for f_i in self.opt.frame_ids}
 
             for f_i in self.opt.frame_ids[1:]:
                 if f_i != "s":

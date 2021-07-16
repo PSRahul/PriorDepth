@@ -154,7 +154,7 @@ class Trainer:
         self.step = 0
         self.start_time = time.time()
         self.save_model()
-        #self.val()
+        
         for self.epoch in range(self.opt.num_epochs):
             self.run_epoch()
             if(self.opt.visualise_images):
@@ -168,6 +168,7 @@ class Trainer:
         #self.model.train()
         #self.model_lr_scheduler.step()
         print("Training")
+        #self.val()
         self.set_train()
 
         for batch_idx, inputs in enumerate(self.train_loader):
@@ -188,13 +189,13 @@ class Trainer:
                 if "depth_gt" in inputs:
                    self.compute_depth_losses(inputs, outputs, losses)
                 self.log("train", inputs, outputs, losses)
-                self.val()
+                #self.val()
             self.step += 1
 
 
     def preprocess_kp2d_batch(self,inputs):
         #print(inputs[('color_aug', 0, 0)].shape)
-        image_inputs_kp2d=inputs[('color_aug', 0, 0)]
+        image_inputs_kp2d=inputs[('color', 0, 0)]
         image_inputs_kp2d_wrapped=torch.zeros_like(image_inputs_kp2d)
         homography=torch.zeros((self.opt.batch_size,3,3))
         for i in range(self.opt.batch_size):
@@ -218,12 +219,15 @@ class Trainer:
 
         #print(outputs.keys())
         self.generate_images_pred(inputs, outputs)
-        #plt.imsave("input.png",inputs["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        #plt.imsave("input_next.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        #plt.imsave("input_previous.png",inputs["color_aug", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input.png",inputs["color_aug", 0, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_next.png",inputs["color_aug", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_previous.png",inputs["color_aug", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
         
-        #plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
-        #plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_wrapped_next.png",outputs["color", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_wrapped_previous.png",outputs["color", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_wrapped_next_posenet.png",outputs["color_posenet", 1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+        plt.imsave("input_wrapped_previous_posenet.png",outputs["color_posenet", -1, 0][0,:,:,:].permute(1,2,0).detach().cpu().numpy())
+
 
         losses = self.compute_losses(inputs, outputs)
         return outputs, losses
@@ -528,9 +532,9 @@ class Trainer:
             _, depth = disp_to_depth(disp, self.opt.min_depth, self.opt.max_depth)
 
             outputs[("depth", 0, scale)] = depth
-            inv_depth = 1 / depth
-            mean_inv_depth = inv_depth.mean(3, True).mean(2, True)
-            mean_inv_depth = torch.reshape(mean_inv_depth, (mean_inv_depth.shape[0], 1))
+            # inv_depth = 1 / depth
+            # mean_inv_depth = inv_depth.mean(3, True).mean(2, True)
+            # mean_inv_depth = torch.reshape(mean_inv_depth, (mean_inv_depth.shape[0], 1))
 
             # where we warp image!
             for i, frame_id in enumerate(self.opt.frame_ids[1:]):
@@ -542,7 +546,7 @@ class Trainer:
                     T[:, 3, 3] = 1
                     
                     if(self.opt.use_posenet_for_3dwarping):
-                        T = outputs[("cam_T_cam", 0, frame_id)]
+                        T1 = outputs[("cam_T_cam", 0, frame_id)]
                     
                 elif frame_id == -1:
                     T[:, :3, :3] = outputs['R_t2']
@@ -551,7 +555,7 @@ class Trainer:
                     T[:, 3, 3] = 1
 
                     if(self.opt.use_posenet_for_3dwarping):
-                        T = outputs[("cam_T_cam", 0, frame_id)]
+                        T1= outputs[("cam_T_cam", 0, frame_id)]
                     
 
                 cam_points = self.backproject_depth[source_scale](
@@ -562,6 +566,18 @@ class Trainer:
                 outputs[("sample", frame_id, scale)] = pix_coords
 
                 outputs[("color", frame_id, scale)] = F.grid_sample(
+                    inputs[("color", frame_id, source_scale)],
+                    outputs[("sample", frame_id, scale)],
+                    padding_mode="border")
+
+                cam_points = self.backproject_depth[source_scale](
+                    depth, inputs[("inv_K", source_scale)])
+                pix_coords = self.project_3d[source_scale](
+                    cam_points, inputs[("K", source_scale)], T1)
+
+                outputs[("sample", frame_id, scale)] = pix_coords
+
+                outputs[("color_posenet", frame_id, scale)] = F.grid_sample(
                     inputs[("color", frame_id, source_scale)],
                     outputs[("sample", frame_id, scale)],
                     padding_mode="border")

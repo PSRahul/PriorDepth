@@ -57,7 +57,7 @@ class KP3DOptions:
                                  choices=["kitti", "kitti_odom", "kitti_depth", "kitti_test"])
         self.parser.add_argument("--png",
                                  help="if set, trains from raw KITTI png files (instead of jpgs)",
-                                 action="store_true")
+                                 action="store_false")
         self.parser.add_argument("--height",
                                  type=int,
                                  help="input image height",
@@ -104,7 +104,7 @@ class KP3DOptions:
                                  #default="/media/eralpkocas/hdd/TUM/AT3DCV/priordepth/KP3D_baseline/trained_models/model_keypoint2_kitti.ckpt")
         self.parser.add_argument("--depth_pretrained",
                                  help="if set, use pretrained depth network",
-                                 action="store_true")
+                                 action="store_false")
         self.parser.add_argument("--depth_encoder",
                                  nargs="?",
                                  type=str,
@@ -122,13 +122,13 @@ class KP3DOptions:
                                  default=0)
         self.parser.add_argument("--epipolar_distance",
                                  help="if set, use epipolar distance for threshold",
-                                 action="store_true")
+                                 action="store_false")
 
         self.parser.add_argument("--freeze_kp2d",
                                  nargs="?",
                                  type=int,
-                                 help="Set to 1 to disable KP training",
-                                 default=0)
+                                 help="Set to 0 to disable KP training",
+                                 default=1)
 
         self.parser.add_argument("--kp_training_2dwarp",
                                  nargs="?",
@@ -162,7 +162,7 @@ class KP3DOptions:
 
         self.parser.add_argument("--use_pnp",
                                  help="if set, use pnp",
-                                 action="store_true")
+                                 action="store_false")
 
         # OPTIMIZATION options
         # TODO: in real training, check batch size but it seems like it should be 12 for md2!
@@ -182,7 +182,7 @@ class KP3DOptions:
         self.parser.add_argument("--scheduler_step_size",
                                  type=int,
                                  help="step size of the scheduler",
-                                 default=15)
+                                 default=5)
 
         # ABLATION options
         self.parser.add_argument("--v1_multiscale",
@@ -295,7 +295,7 @@ class KP3DOptions:
         self.parser.add_argument("--use_posenet_for_3dwarping",
                                  type=int,
                                  help="switch warping debug mode",
-                                 default=0)
+                                 default=1)
 
     def parse(self):
         self.options = self.parser.parse_args()
