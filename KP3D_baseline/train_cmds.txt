@@ -1,0 +1,5 @@
+Instance 1
+python main.py --png --epipolar_distance --freeze_kp2d  2>&1 | tee essential_training_11_7_2100.txt 
+Instance 2
+python main.py --png --epipolar_distance --kp_training_2dwarp 2>&1 | tee essential_training_11_7_2100.txt 
+

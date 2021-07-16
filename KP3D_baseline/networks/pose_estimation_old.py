@@ -44,45 +44,15 @@ class PoseEstimation:
 
         return good_matches, good_match_idx
 
-    def good_matches_batch(self, match_dist, match_idx, threshold=150):
-        mask = match_dist < threshold
-        nonzero_mask = torch.nonzero(mask)
-        good_matches = match_dist[nonzero_mask[nonzero_mask[:, 1] == 0][:, 0], :]
-        good_match_idx = match_idx[nonzero_mask[nonzero_mask[:, 1] == 0][:, 0], :]
-        return good_matches, good_match_idx
-
-    def match_keypoints(self, kp1, kp2, des1, des2,training):
+    def match_keypoints(self, kp1, kp2, des1, des2):
         match_dist, match_idx = kornia.feature.match_mnn(des1, des2)
-        match_dist, match_idx = self.good_matches_batch(match_dist, match_idx)
+        match_dist, match_idx = self.good_matches(match_dist, match_idx)
 
-        match_kp1 = torch.zeros((1, match_idx.shape[0], 2),device=self.device)
-        match_kp2 = torch.zeros((1, match_idx.shape[0], 2),device=self.device)
+        match_kp1 = kp1[match_idx[:, 0]]
+        match_kp2 = kp2[match_idx[:, 1]]
 
-        if (training==0):
-            match_kp1 = kp1[match_idx[:, 0]]
-            match_kp2 = kp2[match_idx[:, 1]]
-        else:
-
-            temp1=match_idx[:, 0]//160
-            temp2=match_idx[:, 0]%160
-            temp1=temp1//2
-            temp2=temp2//2
-            temp1=temp1*80+temp2-1
-
-            match_kp1[:, :, :] = kp1[temp1]
-
-            temp1=match_idx[:, 1]//160
-            temp2=match_idx[:, 1]%160
-            temp1=temp1//2
-            temp2=temp2//2
-            temp1=temp1*80+temp2-1
-
-            match_kp2[:, :, :] = kp2[temp1]
-
-        
-
-        #match_kp1 = torch.unsqueeze(match_kp1, dim=0)
-        #match_kp2 = torch.unsqueeze(match_kp2, dim=0)
+        match_kp1 = torch.unsqueeze(match_kp1, dim=0)
+        match_kp2 = torch.unsqueeze(match_kp2, dim=0)
         return match_kp1, match_kp2
 
     def find_essential_matrix(self, match_kp1, match_kp2):
@@ -127,25 +97,18 @@ class PoseEstimation:
         fig.savefig(self.log_dir+"/keypoint_vis/epoch"+str(epoch)+"batch_idx"+str(batch_idx)+".png",bbox_inches='tight')
                   
 
-    def get_pose(self, input_image_1,input_image_2,kp1, kp2, des1, des2,epoch,batch_idx,training):
+    def get_pose(self, input_image_1,input_image_2,kp1, kp2, des1, des2,epoch,batch_idx):
         outputs_R = torch.tensor([]).to(self.device)
         outputs_t = torch.tensor([]).to(self.device)
         batch_size=kp1.shape[0]
-        #print("kp1",kp1.shape)
-        #print("des1",des1.shape)
-        #sys.exit(0)
         for i in range(kp1.shape[0]):
             curr_kp1 = kp1[i, :, :]
             curr_kp2 = kp2[i, :, :]
             curr_des1 = des1[i, :, :]
             curr_des2 = des2[i, :, :]
 
-            match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2,training)
-            #print("Matches Found")
-            #print("match_kp1",match_kp1.shape)
-            #sys.exit(0)
+            match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2)
             ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
-            #print("Essential Calculated")
             if self.epipolar_distance:
                 distances = kornia.geometry.symmetrical_epipolar_distance(match_kp1, match_kp2, fun_mat)
                 mask = distances < 0.03
@@ -158,7 +121,7 @@ class PoseEstimation:
             R, t, tri_points = self.get_six_dof(ess_mat, match_kp1, match_kp2)
             outputs_R = torch.cat((outputs_R, R), dim=0)
             outputs_t = torch.cat((outputs_t, t), dim=0)
-            #print("Epipolar Filtered")
+
         if(self.visualise_images):
             if(batch_idx%250==0):
                 with torch.no_grad():
@@ -171,9 +134,9 @@ class PoseEstimation:
         outputs_R = torch.tensor([]).to(self.device)
         outputs_t = torch.tensor([]).to(self.device)
         batch_size=kp1.shape[0]
-        match_kp1_batch=torch.zeros((batch_size,500,2),device=self.device)
-        match_kp2_batch=torch.zeros((batch_size,500,2),device=self.device)
-        match_weights=torch.zeros((batch_size,500),device=self.device)
+        match_kp1_batch=torch.zeros((batch_size,600,2),device=self.device)
+        match_kp2_batch=torch.zeros((batch_size,600,2),device=self.device)
+        match_weights=torch.zeros((batch_size,600),device=self.device)
 
         for i in range(kp1.shape[0]):
             curr_kp1 = kp1[i, :, :]
@@ -182,7 +145,7 @@ class PoseEstimation:
             curr_des2 = des2[i, :, :]
 
             match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2)
-            #ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
+            ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
 
             match_kp1_batch[i,:match_kp1.shape[1],:]=match_kp1[0,:,:]
             match_kp2_batch[i,:match_kp2.shape[1],:]=match_kp2[0,:,:]
@@ -193,31 +156,15 @@ class PoseEstimation:
         if self.epipolar_distance:
             distances = kornia.geometry.symmetrical_epipolar_distance(match_kp1_batch, match_kp2_batch, fun_mat_batch)
             mask = distances < 0.03
-            # for i in range(kp1.shape[0]):
-            #     nonzero_i = np.count_nonzero(mask[i].cpu())
-            #     num_nonzeros.append(nonzero_i)
-            #     if nonzero_i > max_num_kps:
-            #         max_num_kps = nonzero_i
-            num_nonzeros = np.count_nonzero(mask.cpu(), axis=1)
-            max_num_kps = np.max(num_nonzeros)  # TODO: check for torch count_nonzero for cuda, etc
+            mask_org=mask
+            #print("Masks shape",mask.shape)
+            mask = torch.stack((mask, mask), dim=-1)
             match_kp1_batch[mask==False]=0
             match_kp2_batch[mask==False]=0
+            #print("KP Shape",match_kp1_batch.shape)
 
-            match_kp1 = torch.zeros((batch_size, max_num_kps, 2), device=self.device)
-            match_kp2 = torch.zeros((batch_size, max_num_kps, 2), device=self.device)
-            match_mask = torch.zeros((batch_size, max_num_kps), dtype=torch.bool, device=self.device)
-
-            for i in range(match_kp1_batch.shape[0]):
-                match_kp1[i, :num_nonzeros[i], :] = match_kp1_batch[i, torch.nonzero(mask)[torch.nonzero(mask)[:, 0] == i][:, 1].cpu(), :]
-                match_kp2[i, :num_nonzeros[i], :] = match_kp2_batch[i, torch.nonzero(mask)[torch.nonzero(mask)[:, 0] == i][:, 1].cpu(), :]
-                match_mask[i, :num_nonzeros[i]] = 1
-
-        outputs_R, outputs_t, tri_points =kornia.geometry.motion_from_essential_choose_solution(ess_mat_batch,
-                                                                                                self.K1,
-                                                                                                self.K2,
-                                                                                                match_kp1,
-                                                                                                match_kp2,
-                                                                                                match_mask)
+            outputs_R, outputs_t, tri_points =kornia.geometry.motion_from_essential_choose_solution(ess_mat_batch, self.K1, self.K2,
+                                                     match_kp1_batch, match_kp2_batch,mask_org)
                 
         if(self.visualise_images):
             if(batch_idx%250==0):
@@ -238,17 +185,7 @@ class PoseEstimation:
         kp3d = torch.cat((kp3d, torch.unsqueeze(depth_vals, dim=1)), dim=1)
         return torch.unsqueeze(kp3d, dim=0)
 
-    def reproject_points_batch(self, depth_img, kp):
-        rounded_kp = np.array(np.round(kp.cpu().detach().numpy())).astype(int)
-        depth_vals = depth_img[:, 0, rounded_kp[:, :, 1], rounded_kp[:, :, 0]]
-        depth_vals = depth_vals.permute(0, 2, 1)
-        c_x_y = torch.Tensor([self.K1[0, 0, 2], self.K1[0, 1, 2]]).to(self.device)
-        f_x_Y = torch.Tensor([self.K1[0, 0, 0], self.K1[0, 1, 1]]).to(self.device)
-        kp3d = (kp - c_x_y) * depth_vals / f_x_Y
-        kp3d = torch.cat((kp3d, torch.unsqueeze(depth_vals[:, :, 0], dim=2)), dim=2)
-        return kp3d
-
-    def get_pose_pnp(self, depth_img, input_image_1, input_image_2, kp1, kp2, des1, des2,epoch, batch_idx,training):
+    def get_pose_pnp(self, depth_img, input_image_1, input_image_2, kp1, kp2, des1, des2,epoch, batch_idx):
         outputs_R = torch.tensor([]).to(self.device)
         outputs_t = torch.tensor([]).to(self.device)
         batch_size = kp1.shape[0]
@@ -258,7 +195,7 @@ class PoseEstimation:
             curr_des1 = des1[i, :, :]
             curr_des2 = des2[i, :, :]
             curr_depth = depth_img[i, :, :, :]
-            match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2,training)
+            match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2)
 
             ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
             if self.epipolar_distance:
@@ -271,82 +208,14 @@ class PoseEstimation:
                 match_kp1 = torch.reshape(match_kp1, (1, int(match_kp1.shape[0] / 2), 2))
                 match_kp2 = torch.reshape(match_kp2, (1, int(match_kp2.shape[0] / 2), 2))
 
-            kp3d = self.reproject_points(curr_depth, match_kp2)
-            output = perspective_n_points.efficient_pnp(kp3d, match_kp2)
+            kp3d = self.reproject_points(curr_depth, match_kp1)
+            output = perspective_n_points.efficient_pnp(kp3d, match_kp1)
 
             R = output[1]
             t = output[2]
             outputs_R = torch.cat((outputs_R, R), dim=0)
             outputs_t = torch.cat((outputs_t, t), dim=0)
 
-        if (self.visualise_images):
-            if (batch_idx % 250 == 0):
-                with torch.no_grad():
-                    self.visualise_matches(input_image_1, input_image_2, match_kp1[0, :, :].cpu(),
-                                           match_kp2[0, :, :].cpu(), epoch, batch_idx, batch_size)
-            plt.close('all')
-        return outputs_R, outputs_t
-
-    def get_pose_pnp_batch(self, depth_img, input_image_1, input_image_2, kp1, kp2, des1, des2,epoch, batch_idx):
-        outputs_R = torch.tensor([]).to(self.device)
-        outputs_t = torch.tensor([]).to(self.device)
-        batch_size = kp1.shape[0]
-        match_kp1_batch = torch.zeros((batch_size, 600, 2), device=self.device)
-        match_kp2_batch = torch.zeros((batch_size, 600, 2), device=self.device)
-        match_weights = torch.zeros((batch_size, 600), device=self.device)
-
-        for i in range(kp1.shape[0]):
-            curr_kp1 = kp1[i, :, :]
-            curr_kp2 = kp2[i, :, :]
-            curr_des1 = des1[i, :, :]
-            curr_des2 = des2[i, :, :]
-
-            match_kp1, match_kp2 = self.match_keypoints(curr_kp1, curr_kp2, curr_des1, curr_des2)
-            # ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
-
-            match_kp1_batch[i, :match_kp1.shape[1], :] = match_kp1[0, :, :]
-            match_kp2_batch[i, :match_kp2.shape[1], :] = match_kp2[0, :, :]
-            match_weights[i, :match_kp1.shape[1]] = 1
-
-        #ess_mat, fun_mat = self.find_essential_matrix(match_kp1, match_kp2)
-        ess_mat_batch, fun_mat_batch = self.find_essential_matrix_batch(match_kp1_batch, match_kp2_batch,match_weights)
-
-        max_num_kps = 0
-        num_nonzeros = []
-        if self.epipolar_distance:
-            distances = kornia.geometry.symmetrical_epipolar_distance(match_kp1_batch, match_kp2_batch, fun_mat_batch)
-            mask = distances < 0.5
-            for i in range(kp1.shape[0]):
-                nonzero_i = np.count_nonzero(mask[i].cpu())
-                num_nonzeros.append(nonzero_i)
-                if nonzero_i > max_num_kps:
-                    max_num_kps = nonzero_i
-            match_kp1_batch[mask == False] = 0
-            match_kp2_batch[mask == False] = 0
-            # mask = torch.stack((mask[0, :], mask[0, :]), dim=1)
-            # mask = torch.unsqueeze(mask, dim=0)
-            # match_kp1 = torch.masked_select(match_kp1[0], mask)
-            # match_kp2 = torch.masked_select(match_kp2[0], mask)
-            # match_kp1 = torch.reshape(match_kp1, (1, int(match_kp1.shape[0] / 2), 2))
-            # match_kp2 = torch.reshape(match_kp2, (1, int(match_kp2.shape[0] / 2), 2))
-        match_kp1 = torch.zeros((batch_size, max_num_kps, 2), device=self.device)
-        match_kp2 = torch.zeros((batch_size, max_num_kps, 2), device=self.device)
-        match_mask = torch.zeros((batch_size, max_num_kps), dtype=torch.bool, device=self.device)
-
-        match_kp1[:, :max_num_kps, :] = match_kp1_batch[0, :max_num_kps, :]
-        match_kp2[:, :max_num_kps, :] = match_kp2_batch[0, :max_num_kps, :]
-        for i in range(len(num_nonzeros)):
-            num_ones = num_nonzeros[i]
-            match_mask[:, :num_ones] = 1
-        kp3d = self.reproject_points_batch(depth_img, match_kp1)
-        output = perspective_n_points.efficient_pnp(kp3d, match_kp1, match_mask)
-
-        #R = output[1]
-        #t = output[2]
-        #outputs_R = torch.cat((outputs_R, R), dim=0)
-        #outputs_t = torch.cat((outputs_t, t), dim=0)
-        outputs_R = output[1]
-        outputs_t = output[2]
         if (self.visualise_images):
             if (batch_idx % 250 == 0):
                 with torch.no_grad():
