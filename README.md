@@ -29,4 +29,4 @@ This set of graphics show the performance of the keypoint matching filters imple
 For training the network, setup the configuration in ```KP3D_baseline/options.py``` and start the training with ```KP3D_baseline/main.py```
 
 
-More details are available in the presentations. Feel free to check them out!
+More details are available in the presentations. Feel free to check them out.
